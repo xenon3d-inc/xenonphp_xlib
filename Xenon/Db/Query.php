@@ -1,0 +1,174 @@
+<?php 
+
+namespace Xenon\Db;
+
+use \Xenon\Db\Query\Helper\Where;
+use \Xenon\Db\Schema\ModelData;
+use \Xenon\Db\Database;
+
+class Query
+{
+    public $model = "";
+    public $modelData = null;
+    public $table = "";
+    
+    protected $query;
+    protected $where = null;
+    protected $orderby = "";
+    protected $limit = "";
+    protected $offset = "";
+    
+    protected $resultset = null;
+    protected $resultindex = 0;
+    
+    public function __construct($query = "", $model = null) {
+        if ($query instanceof Query\Helper\Expr && $model == null) {
+            $model = $query->model;
+            $query .= "";
+        }
+        if ($model != null) {
+            $this->model = $model;
+            $this->modelData = ModelData::get($model);
+            $this->table = $this->modelData->getTable();
+        }
+        $this->query = $query;
+    }
+    
+    public function __toString() {
+        return $this->query;
+    }
+    
+    public function orderBy($fields) {
+        if (!empty($fields)) {
+            if (!is_array($fields)) {
+                if (preg_match("#^\s*(\w+)\s+((a|de)sc)\s*$#i", $fields, $matches)) {
+                    $fields = [$matches[1] => strtoupper($matches[2])];
+                } else {
+                    $fields = [$fields => 'ASC'];
+                }
+            }
+            $this->orderby = "";
+            foreach ($fields as $key => $value) {
+                $this->orderby .= ($this->orderby? ", ":"");
+                if ($value instanceof Expr) {
+                    $this->orderby .= $value;
+                } else {
+                    if (is_numeric($key)) {
+                        $key = $value;
+                        $value = "ASC";
+                    }
+                    if (!preg_match("#^(A|DE)SC$#i", $value)) {
+                        //TODO Throw error : Field values need to be either ASC or DESC
+                        return;
+                    }
+                    $this->orderby .= (new Query\Helper\Field($this->model, $key)) . " " . strtoupper($value);
+                }
+            }
+        } else {
+            //TODO Throw error : Fields param cannot be empty in orderBy clause
+        }
+        return $this;
+    }
+    
+    public function offset($offset) {
+        if (is_numeric($offset)) {
+            $this->offset = $offset;
+        } else {
+            //TODO Throw error : param need to be integer
+        }
+        return $this;
+    }
+    
+    public function limit($limit, $arg2 = null) {
+        if ($arg2) {
+            return $this->limit($arg2)->offset($limit);
+        }
+        if (is_numeric($limit)) {
+            $this->limit = $limit;
+        } else {
+            //TODO Throw error : param need to be integer
+        }
+        return $this;
+    }
+    
+    public function where(...$args) {
+        if ($this->where) $this->where->where($this->model, ...$args);
+        else $this->where = new Where($this->model, ...$args);
+        return $this;
+    }
+    
+    public function andWhere(...$args) {
+        if ($this->where) $this->where->andWhere($this->model, ...$args);
+        else $this->where = new Where($this->model, ...$args);
+        return $this;
+    }
+    
+    public function orWhere(...$args) {
+        if ($this->where) $this->where->orWhere($this->model, ...$args);
+        else $this->where = new Where($this->model, ...$args);
+        return $this;
+    }
+    
+    public function execute(Database $database = null) {
+        $this->reset();
+        if ($database === null) {
+            if (!$this->model) {
+                //TODO Throw error "Model or database not set for this query"
+                return;
+            }
+            $database = Database::getInstanceForModel($this->model);
+        }
+        Database::$queries[] = (string)$this;
+        $this->resultset = mysqli_query($database->db, (string)$this);
+        if ($this->resultset === false) {
+            
+            //TODO Handle SQL error : $database->db->error;
+            if (DEV) echo $database->db->error . ", Query: ".$this;
+            
+        }
+        return $this;
+    }
+    
+    public function fetchCount($field = 'COUNT') {
+        if (!$this->resultset) {
+            $this->execute();
+        }
+        if (($result = mysqli_fetch_assoc($this->resultset))) {
+            return $result[$field];
+        }
+        return 0;
+    }
+    
+    public function fetchRow() {
+        if (!$this->resultset) {
+            $this->execute();
+        }
+        $result = mysqli_fetch_assoc($this->resultset);
+        if ($this->model && $result) {
+            $result = new $this->model($result, true);
+            $result->initFromQuery($this->__toString(), $this->resultindex);
+        }
+        $this->resultindex++;
+        if (!$result) {
+            $this->reset();
+            return null;
+        }
+        return $result;
+    }
+    
+    public function fetchAll() {
+        $this->execute();
+        $results = [];
+        while($row = $this->fetchRow()) {
+            $results[$row->id] = $row;
+        }
+        return $results;
+    }
+    
+    public function reset() {
+        if ($this->resultset) mysqli_free_result($this->resultset);
+        $this->resultset = null;
+        $this->resultindex = 0;
+        return $this;
+    }
+}

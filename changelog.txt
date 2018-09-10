@@ -1,0 +1,42 @@
+0.4.3 - 2018-08-21
+    improved templates
+
+0.4.2 - 2018-07-11
+    Added PostgreSQL connector
+
+0.4.1 - 2018-03-23
+    Small improvements on templates
+    Improved X_ROUTE class
+    Improved base init file
+    Added Xenon\OracleDB\SimpleDatabaseConnection class
+    Added support for IIS and subdirectories from document_root (added BASE_URL constant)
+
+0.4.0 - 2017-08-29
+    Improved htaccess auth management
+    Fixes and improvements on the ORM for new MySql specifications
+    Added ReplaceUrl feature in Controller and ajaxSubmit
+    Improvements in StaticCKEditor
+    Automatic viewFile path for admin if no view file exists in the admin/ path
+    Fixed a bug in ajaxUpload helper
+    Added geoloc helper
+    Added forex helper
+
+0.3.0 - 2016-07
+    Updated ImageProcessor to 1.8 (Fixed orientation from exif data)
+    Improve structure and init functions
+    Added ajaxSubmit, ajaxUpload, simpleUpload
+    Added shared elements in layout
+
+0.2.0 - 2016-05
+    Finished config system
+    New MySQL Wrapper with encryption
+    Improved structure coherence
+    Added i18n function
+    Improved base template and admin system with CMS that defaults to inline editing
+    Added mysql database model option for StaticCKEditor
+
+0.1.1 - 2016-03-08
+    Improved URL and Route parsing system
+    Added template for htpasswd in base htaccess
+
+0.1 - 2016-03-02
