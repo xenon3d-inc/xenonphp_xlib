@@ -75,7 +75,7 @@
  *  Server Side PHP, In the main layout :
  *
  *      // this makes redirects ( header("Location: ...") ) to push the new redirected url in the browser's history
- *      header("X-FinalURL: " . FULL_URL );
+ *      header("X-FinalURL: ".URL);
  *
  *      // For content output
  *      if (PJAX) { // PJAX = !empty($_SERVER['HTTP_X_PJAX'])
@@ -585,9 +585,7 @@ if (typeof (jQuery) === 'function') {
                 }
             }
         });
-        if ($.inArray('state', $.event.props) < 0) {
-            $.event.props.push('state');
-        }
+        // if ($.inArray('state', $.event.props) < 0) $.event.props.push('state'); // $.event.props was removed in jQuery 3.0 but does not seem to be causing any issue if we comment this line... more testing needed...
 
         $.ajaxSetup({
             cache : true
