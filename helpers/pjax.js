@@ -446,19 +446,17 @@ if (typeof (jQuery) === 'function') {
                     if ($fragment.length) {
                         this.html($fragment.contents());
                         // If there's a <title> tag in the response, use it as the page's title.
-                        title = html.find('title').text() || $fragment.attr('title') || $fragment.data('title');
+                        title = xhr.getResponseHeader('X-Title') || html.find('title').text() || $fragment.attr('title') || $fragment.data('title');
                     } else {
                         return window.location = url;
                     }
                 } else {
-                    // If we got no data or an entire web page, go directly
-                    // to the page and let normal error handling happen.
+                    // If we got no data or an entire web page, go directly to the page and let normal error handling happen.
                     if (!$.trim(data) || /^\s*((<!DOCTYPE)|(<html))/i.test(data)) {
                         return window.location = url;
                     }
                     this.html(data);
-                    // If there's a <title> tag in the response, use it as the page's title.
-                    title = this.find('title').remove().text();
+                    title = xhr.getResponseHeader('X-Title') || this.find('title').text();
                 }
 
                 if (title) {
@@ -474,16 +472,14 @@ if (typeof (jQuery) === 'function') {
 
                 if (options.replace) {
                     pjax.active = true;
-                    window.history.replaceState(state, document.title, options['urlAddressBar']
-                        || xhr.getResponseHeader('X-FinalURL') || url);
+                    window.history.replaceState(state, document.title, options['urlAddressBar'] || xhr.getResponseHeader('X-FinalURL') || url);
                 } else if (options.push) {
                     // this extra replaceState before first push ensures good back button behavior
                     if (!pjax.active) {
                         window.history.replaceState($.extend({}, state, {url : null}), oldTitle);
                         pjax.active = true;
                     }
-                    window.history.pushState(state, document.title, options['urlAddressBar']
-                        || xhr.getResponseHeader('X-FinalURL') || url);
+                    window.history.pushState(state, document.title, options['urlAddressBar'] || xhr.getResponseHeader('X-FinalURL') || url);
                 }
 
                 // Google Analytics support
