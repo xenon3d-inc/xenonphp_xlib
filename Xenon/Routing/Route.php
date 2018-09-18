@@ -11,7 +11,7 @@ class Route {
     public $routeParams = array();
 
     public static $currentInstance = null;
-    protected $url = URL;
+    protected $url = ROUTE_URL;
     protected $routeArray = array();
     protected $routes = array();
 
@@ -202,10 +202,7 @@ class Route {
         }
 
         // Domain / Canonical URL
-        $domain = "";
-        if ($canonical) {
-            $domain = (((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://").$_SERVER['HTTP_HOST'];
-        }
+        $domain = $canonical ? HOST_URL : "";
 
         // Base UrL
         $baseURL = defined('BASE_URL') ? BASE_URL : '';

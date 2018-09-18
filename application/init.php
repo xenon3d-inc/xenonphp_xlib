@@ -30,11 +30,14 @@ if (!defined('DEFAULT_LANG')) define('DEFAULT_LANG', $_SERVER['DEFAULT_LANG']);
 
 // Urls
 if (!defined('BASE_URL')) define('BASE_URL', (($_BASE_URL=dirname($_SERVER['PHP_SELF']))=='/'?'':$_BASE_URL));
-if (!defined('FULL_URL')) define('FULL_URL', $_SERVER['REQUEST_URI']);
-if (!defined('URL')) define('URL', preg_replace("#^".preg_quote(BASE_URL, '#')."(.*)$#", "$1", FULL_URL));
+if (!defined('URL')) define('URL', $_SERVER['REQUEST_URI']);
+if (!defined('HOST_URL')) define('HOST_URL', (((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://").$_SERVER['HTTP_HOST']);
+if (!defined('FULL_URL')) define('FULL_URL', HOST_URL.URL);
+if (!defined('ROUTE_URL')) define('ROUTE_URL', preg_replace("#^".preg_quote(BASE_URL, '#')."(.*)$#", "$1", URL));
 
 // AJAX
 if (!defined('AJAX')) define('AJAX',((!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')));
+if (!defined('PJAX')) define('PJAX',(!empty($_SERVER['HTTP_X_PJAX'])));
 
 ///////////////////////////////////////////////////////////////////
 

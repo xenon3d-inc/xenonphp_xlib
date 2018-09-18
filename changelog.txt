@@ -1,3 +1,7 @@
+0.5.0 - 2018-09-17
+    Added PJAX layout
+    improved templates
+
 0.4.3 - 2018-08-21
     improved templates
 
