@@ -1,11 +1,12 @@
 <?php
+// Works well with ajaxUpload.js
 
-function X_upload($name = null, $filePrefix = "", $acceptFilenameRegex = "#.+\..+#", $refuseFilenameRegex = "#/|\.\.|\.(php|sh|js|cgi|phtml|exe|bat|cmd)$#", $bufferSize = 4096) {
+function X_upload($name = null, $filePrefix = "", $acceptFilenameRegex = "#\w+#", $refuseFilenameRegex = "#/|\.\.|\.(php|sh|js|cgi|phtml|exe|bat|cmd)$#", $bufferSize = 4096) {
     if ($name === null) {
         $name = isset($_SERVER['HTTP_X_FILE_NAME']) ? $_SERVER['HTTP_X_FILE_NAME'] : "";
         if (preg_match($acceptFilenameRegex, $name) && !preg_match($refuseFilenameRegex, $name)) {
             $filename = $filePrefix.time().'_'.str_replace('&','', $name);
-            $filepath = DOCUMENT_ROOT."uploads/".$filename;
+            $filepath = UPLOAD_PATH.$filename;
 
             $upload = fopen("php://input", "r");
             $firstBunch = fread($upload, $bufferSize);

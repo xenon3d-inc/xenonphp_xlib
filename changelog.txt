@@ -1,6 +1,8 @@
 0.5.0 - 2018-09-17
     Added PJAX layout
+    Added Loading Icon helper
     improved templates
+    modified URL constants
 
 0.4.3 - 2018-08-21
     improved templates
