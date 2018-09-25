@@ -387,7 +387,7 @@ if (typeof (jQuery) === 'function') {
                             window.location = settings.url;
                         };
                         break;
-                    case 'continue404_or_relead' :
+                    case 'continue404_or_reload' :
                         options.onError = function (e, xhr, textstatus, errorThrown, settings, finalUrl, title) {
                             if (xhr.status == 404) {
                                 document.title = title;
