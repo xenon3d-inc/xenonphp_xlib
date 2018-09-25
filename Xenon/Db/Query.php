@@ -123,7 +123,7 @@ class Query
         if ($this->resultset === false) {
             
             //TODO Handle SQL error : $database->db->error;
-            if (DEV) echo $database->db->error . ", Query: ".$this;
+            if (DISPLAY_ERRORS && DEV) echo $database->db->error . ", Query: ".$this;
             
         }
         return $this;

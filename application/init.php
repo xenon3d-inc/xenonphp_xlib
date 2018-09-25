@@ -4,9 +4,9 @@
 if (!defined('PROD_DOMAIN')) define('PROD_DOMAIN', $_SERVER['PROD_DOMAIN']);
 if (!defined('DEV_DOMAIN')) define('DEV_DOMAIN', $_SERVER['DEV_DOMAIN']);
 
-// Determine if PROD or DEV
+// Determine if PROD or DEV (both can be true, both can be false... that is an accepted behaviour because when using these we may want to exclusively check a stage)
+if (!defined('DEV')) define('DEV', preg_match("#^(www\.)?(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", $_SERVER['HTTP_HOST']));
 if (!defined('PROD')) define('PROD', preg_match("#^(www\.)?(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", $_SERVER['HTTP_HOST']));
-if (!defined('DEV')) define('DEV', !PROD);
 
 // Paths
 if (!defined('REAL_DOCUMENT_ROOT')) define('REAL_DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT'] . '/');
@@ -39,14 +39,37 @@ if (!defined('ROUTE_URL')) define('ROUTE_URL', preg_replace("#^".preg_quote(BASE
 if (!defined('AJAX')) define('AJAX',((!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')));
 if (!defined('PJAX')) define('PJAX',(!empty($_SERVER['HTTP_X_PJAX'])));
 
+// Global Database Settings
+if (!defined('DB_AUTO_UPDATE_STRUCTURE')) define('DB_AUTO_UPDATE_STRUCTURE', true);
+if (!defined('DB_UPDATES_CACHE_DIRECTORY')) define('DB_UPDATES_CACHE_DIRECTORY', CACHE_PATH . "database_schema_updates");
+
 ///////////////////////////////////////////////////////////////////
 
-// Display Errors only if DEV
-ini_set('display_errors', DEV);
-error_reporting(E_ALL);
+// Error Handling
+if (!defined('SHUTDOWN_FUNCTION')) {
+    define('SHUTDOWN_FUNCTION', 'X_shutdown_function');
+    require_once XLIB_PATH . 'application/shutdown_function.php';
+}
+if (!defined('ERROR_HANDLER')) {
+    define('ERROR_HANDLER', 'X_error_handler');
+    require_once XLIB_PATH . 'application/error_handler.php';
+}
+if (!defined('OUTPUT_HANDLER')) {
+    define('OUTPUT_HANDLER', 'X_output_handler');
+    require_once XLIB_PATH . 'application/output_handler.php';
+}
+if (!defined('DISPLAY_ERRORS')) define('DISPLAY_ERRORS', DEV && !PROD);
+if (!defined('ERROR_REPORTING_FLAG')) define('ERROR_REPORTING_FLAG', E_ALL);
+if (ERROR_HANDLER) set_error_handler(ERROR_HANDLER);
+if (SHUTDOWN_FUNCTION) register_shutdown_function(SHUTDOWN_FUNCTION);
+ini_set('display_errors', DISPLAY_ERRORS);
+error_reporting(ERROR_REPORTING_FLAG);
+
+///////////////////////////////////////////////////////////////////
 
 // Include Helpers
 if (!defined('DONT_INCLUDE_HELPERS')) {
+    require_once XLIB_PATH . 'helpers/include.php';
     require_once XLIB_PATH . 'helpers/url.php';
     require_once XLIB_PATH . 'helpers/upload.php';
     require_once XLIB_PATH . 'helpers/i18n.php';

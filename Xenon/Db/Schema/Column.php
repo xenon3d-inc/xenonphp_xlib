@@ -4,31 +4,42 @@ namespace Xenon\Db\Schema;
 
 class Column
 {
-    public $model, $field;
-    public $handler = 'string'; // string | number | date | time | bool | json | id | enum | onetomany
-    public $enum = array();
-    //
-    protected $column = null; // STRING
-    protected $id = false; // BOOL
-    protected $auto_increment = false; // false | NUMBER
-    protected $type = 'varchar'; // 'varchar' | 'text' | ...
-    protected $length = 255; // NUMBER | "N,N"
-    protected $null = true; // BOOL
-    protected $default = null; // any value
-    protected $index = false; // BOOL
-    protected $encrypted = false; // BOOL
-    protected $foreign_key = null; // ['model'=>'ModelClassName', 'field'=>'propertyName', 'table'=>'tableName', 'column'=>'columnName']
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Column Annotations
+
+    // Standard column annotations translated directly into database schema, updating these WILL update the database structure
+    protected $column = null; // STRING | empty=field-name | unset=COLUMN-IS-IGNORED
+    protected $id = false; // BOOL | empty=true | unset=false // Automatically adds auto_increment=1
+    protected $auto_increment = false; // false | NUMBER | empty defaults to 1
+    protected $type = 'varchar'; // varchar | text | string | int | float | long | double | bool | byte | short | array | json | enum | timestamp | date | time | datetime | ...
+    protected $length = 255; // NUMBER | NUMBER,NUMBER
+    protected $null = true; // BOOL | empty=true | unset=true // Can also use @notnull
+    protected $default = null; // NUMBER | STRING | empty=EMPTY-STRING | unset=IGNORED
+    protected $index = false; // empty=true | unset=false
     protected $onupdate = null; // 'cascade' for foreign keys | ON UPDATE 'CURRENT_TIMESTAMP'
-    protected $ondelete = null; // 'cascade' | ... ONLY FOR FOREIGN KEYS
-    
+
+    // Foreign keys stuff (foreign_key will need to be updated manually in the database if modified)
+    protected $foreign_key = null; // ['model'=>'ModelClassName', 'field'=>'propertyName', 'table'=>'tableName', 'column'=>'columnName']
+    protected $ondelete = null; // 'cascade' ... ONLY FOR FOREIGN KEYS
+
+    // Extended model annotations for advanced runtime features, does not alter table schema
     protected $onetomany = null; // ['model'=>'ModelClassName', 'field'=>'propertyName']
     protected $onetoone = null; // ['model'=>'ModelClassName', 'field'=>'propertyName']
     protected $manytoone = null; // ['model'=>'ModelClassName', 'field'=>'propertyName']
     protected $manytomany = null; // ['model'=>'ModelClassName', 'field'=>'propertyName']
-    protected $lazy = true; // BOOL
-    protected $join = false; // BOOL
-    protected $sort = null; // STRING (field ASC)
-    protected $filter = null; // STRING expression
+    protected $lazy = true; // adverse of join (you either set @lazy or @join, default is lazy) // lazy loads xToMany table only when we call the field
+    protected $join = false; // adverse of lazy (you either set @lazy or @join, default is lazy) // joins xToMany table in the initial query and will already be available when we call the field
+    protected $sort = null; // STRING // ex: id ASC
+    protected $filter = null; // STRING // ex: `active`=true
+    protected $encrypted = false; // BOOL | empty=true | unset=false
+    protected $translatable = false; // BOOL | empty=true | unset=false
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Runtime model members, these are not annotions
+    public $model, $field;
+    public $handler = 'string'; // string | number | date | time | bool | json | id | enum | onetomany
+    public $enum = array();
 
     public function getColumnName()
     {
@@ -49,7 +60,7 @@ class Column
         if (preg_match("#^[a-z_][a-z0-9_-]*$#", $value)) {
             $this->column = $value;
         } else {
-            //TODO Throw notice "Invalid Column Name '$value' for $this->field in $this->model"
+            trigger_error("Invalid Column Name '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
         }
     }
 
@@ -214,16 +225,16 @@ class Column
             return;
         }
         // ENUM
-        if (preg_match("#^(enum|list|set) ?\(([a-z0-9_'\"`,;\|:\. -]+)\)$#i", $value, $matches)) {
+        if (preg_match("#^(enum) ?\(([a-z0-9_'\"`,;\|:\. -]+)\)$#i", $value, $matches)) {
             $this->type = 'varchar';
-            $this->length = 15;
+            $this->length = 25;
             $this->handler = 'enum';
             $this->enum = array_map(function($val) {
                 return preg_replace("#^['\"`]*([a-z0-9_:\. -]+)['\"`]*$#i", "$1", trim($val));
             }, preg_split("# *[,;\|]+ *#i", $matches[2]));
             return;
         }
-        //TODO Throw notice "Invalid Column Type '$value' for $this->field in $this->model"
+        trigger_error("Invalid Column Type '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
     }
 
     protected function set_length($value)
@@ -270,13 +281,6 @@ class Column
         $this->index = true;
     }
 
-    protected function set_encrypted($value)
-    {
-        if ($value !== false) {
-            $this->encrypted = true;
-        }
-    }
-
     protected function set_foreign_key($value)
     {
         if (is_array($value)) {
@@ -289,18 +293,18 @@ class Column
                 // Find Foreign Key Table/Column
                 $foreignTable = (new ModelData)->fromModel($model);
                 if (!$foreignTable || !$foreignTable->getTable() || !$foreignTable->getTable()->table) {
-                    //TODO Throw error "Foreign Key Reference '$model' does not exist for $this->field in $this->model"
+                    trigger_error("Foreign Key Reference '$model' does not exist for field `$this->field` in model $this->model", E_USER_ERROR);
                     return;
                 }
                 $foreignColumn = $foreignTable->getColumn($field);
                 if (!$foreignColumn || !$foreignColumn->column) {
-                    //TODO Throw error "Foreign Key Column Reference '$field' does not exist for $this->field in $this->model"
+                    trigger_error("Foreign Key Column Reference '$field' does not exist for field `$this->field` in model $this->model", E_USER_ERROR);
                     return;
                 }
 
                 $this->foreign_key = ['model' => $model, 'field' => $field, 'table' => $foreignTable->getTable()->table, 'column' => $foreignColumn->column];
             } else {
-                //TODO Throw notice "Invalid Foreign Key format '$value' for $this->field in $this->model"
+                trigger_error("Invalid Foreign Key format '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
             }
         }
     }
@@ -313,7 +317,7 @@ class Column
                 break;
 
             default :
-            //TODO Throw notice "Invalid OnDelete '$value' for $this->field in $this->model"
+                trigger_error("Invalid OnDelete '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
         }
     }
 
@@ -326,7 +330,7 @@ class Column
                     break;
 
                 default :
-                //TODO Throw notice "Invalid OnUpdate '$value' for $this->field in $this->model"
+                    trigger_error("Invalid OnUpdate '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
             }
         } else {
             $this->onupdate = preg_replace('#["`]#', "'", $value);
@@ -339,7 +343,7 @@ class Column
             $this->onetomany = ['model' => $matches[1], 'field' => $matches[2]];
             $this->handler = "onetomany";
         } else {
-            //TODO Throw notice "Invalid OneToMany format '$value' for $this->field in $this->model"
+            trigger_error("Invalid OneToMany format '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
         }
     }
 
@@ -348,7 +352,7 @@ class Column
         if (preg_match(self::PREG_MODEL_FIELD, $value, $matches)) {
             $this->onetoone = ['model' => $matches[1], 'field' => $matches[2]];
         } else {
-            //TODO Throw notice "Invalid OneToOne format '$value' for $this->field in $this->model"
+            trigger_error("Invalid OneToOne format '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
         }
     }
 
@@ -357,7 +361,7 @@ class Column
         if (preg_match(self::PREG_MODEL_FIELD, $value, $matches)) {
             $this->manytoone = ['model' => $matches[1], 'field' => $matches[2]];
         } else {
-            //TODO Throw notice "Invalid ManyToOne format '$value' for $this->field in $this->model"
+            trigger_error("Invalid ManyToOne format '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
         }
     }
 
@@ -366,26 +370,42 @@ class Column
         if (preg_match(self::PREG_MODEL_FIELD, $value, $matches)) {
             $this->manytomany = ['model' => $matches[1], 'field' => $matches[2]];
         } else {
-            //TODO Throw notice "Invalid ManyToMany format '$value' for $this->field in $this->model"
+            trigger_error("Invalid ManyToMany format '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
         }
     }
     
-    protected function set_lazy($value) {
+    protected function set_lazy() {
         $this->lazy = true;
         $this->join = false;
     }
 
-    protected function set_join($value) {
+    protected function set_join() {
         $this->lazy = false;
         $this->join = true;
     }
     
-    protected function set_sort($value) {
+    protected function set_sort($value)
+    {
         $this->sort = $value;
     }
     
-    protected function set_filter($value) {
+    protected function set_filter($value)
+    {
         $this->filter = $value;
+    }
+
+    protected function set_encrypted($value)
+    {
+        if ($value !== false) {
+            $this->encrypted = true;
+        }
+    }
+
+    protected function set_translatable($value)
+    {
+        if ($value !== false) {
+            $this->translatable = true;
+        }
     }
     
     ///////////////////////////////////////////////////////////////////////
@@ -414,7 +434,7 @@ class Column
                 if (property_exists($this, $key)) {
                     $this->$key = $value;
                 } else {
-                    //TODO Throw notice "Invalid Meta Option '$key' for $this->field in $this->model"
+                    trigger_error("Invalid Meta Option '$key' for field `$this->field` in model $this->model", E_USER_NOTICE);
                 }
             }
         }

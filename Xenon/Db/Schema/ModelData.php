@@ -75,10 +75,11 @@ class ModelData
         return $this;
     }
 
-    public function toDb($mysqli_link)
+    // Returns the query instead of $this
+    public function getCreateOrAlterQuery($mysqli_link)
     {
         if (!$this->getTable()) {
-            //TODO Throw notice "ModelData Not Initialised"
+            trigger_error("ModelData Not Initialised", E_USER_ERROR);
             return;
         }
 
@@ -87,28 +88,11 @@ class ModelData
         if (!$fromDB->getTable()) {
             // CREATE TABLE
             $query = DbParser::TableToSql($this->getTable(), $this->getColumns());
-            if ($query) {
-                //TODO Log Query
-                $success = mysqli_query($mysqli_link, $query); // EXECUTE CREATE TABLE
-                if ($success === false) {
-                    //TODO Throw "Error On DbParser::TableToSql" mysqli_error($mysqli_link)
-                }
-            }
         } else {
             // ALTER TABLE
             $query = DbParser::AlterTableToSql($fromDB, $this);
-            if ($query) {
-                //TODO Log Query
-//                echo $query;
-
-                $success = mysqli_query($mysqli_link, $query); // EXECUTE ALTER TABLE
-                if ($success === false) {
-//                    echo mysqli_error($mysqli_link);
-                    //TODO Throw "Error On DbParser::AlterTableToSql" mysqli_error($mysqli_link)
-                }
-            }
         }
-        return $this;
+        return $query;
     }
 
 }

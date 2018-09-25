@@ -46,9 +46,9 @@
  *      onBeforeSend(e, xhr, options) // return false to cancel the request
  *      onStart(e, xhr, options) // Called just before sending the request if it was not cancelled by 'onBeforeSend'
  *      onTimeout(e, xhr, options) // Called if the request timed out. Return false to abort the request, then onError.
- *      onError(e, xhr, textstatus, errorThrown, options) // Called when an error occurs
- *      onSuccess(e, responseContent, status, xhr, options) // When the request was successful and we have the response
- *      onComplete(e, xhr, textstatus, options) // When request is completed, regardless if there was an error or not
+ *      onError(e, xhr, textstatus, errorThrown, options, finalUrl, title) // Called when an error occurs
+ *      onSuccess(e, responseContent, status, xhr, options, finalUrl) // When the request was successful and we have the response
+ *      onComplete(e, xhr, textstatus, options, finalUrl) // When request is completed, regardless if there was an error or not
  *
  *
  *  You may want to call directly a pjax via Javascript, by using the pjax() function.
@@ -110,17 +110,18 @@ var PjaxDefaultOptions = {
     },
     onTimeout : function(e, xhr, options) {
     },
-    onError : function(event, xhr, textstatus, errorThrown, options) {
+    onError : function(e, xhr, textstatus, errorThrown, options, finalUrl, title) {
     },
-    onSuccess : function(e, responseContent, status, xhr, options) {
+    onSuccess : function(e, responseContent, status, xhr, options, finalUrl) {
     },
-    onComplete : function(e, xhr, textstatus, options) {
+    onComplete : function(e, xhr, textstatus, options, finalUrl) {
     },
     statusCode : {// Actions to do for any status code
         404 : function() {
             // Page Not Found
         }
-    }
+    },
+    debug: false,
 };
 
 if (typeof (jQuery) === 'function') {
@@ -212,42 +213,7 @@ if (typeof (jQuery) === 'function') {
             }
 
             if ($(elem).attr('data-pjax-error')) {
-                switch ($(elem).attr('data-pjax-error').toLowerCase()) {
-                    case 'abort' :
-                        options.onError = function(e, xhr, textstatus, errorThrown, settings) {
-                            return false;
-                        };
-                        break;
-                    case 'retry' :
-                        options.onError = function(e, xhr, textstatus, errorThrown, settings) {
-                            var settings = {
-                                url : settings.url,
-                                container : settings.container,
-                                fragment : settings.fragment,
-                                push : settings.push,
-                                replace : settings.replace,
-                                dataType : settings.dataType,
-                                type : settings.type,
-                                data : settings.data,
-                                timeout : 0,
-                                onError : function() {},
-                                onBeforeSend : settings.onBeforeSend,
-                                onStart : settings.onStart,
-                                onTimeout : settings.onTimeout,
-                                onSuccess : settings.onSuccess,
-                                onComplete : settings.onComplete,
-                                statusCode : settings.statusCode
-                            };
-                            $.pjax(settings);
-                        };
-                        break;
-                    case 'reload' :
-                        options.onError = function(e, xhr, textstatus, errorThrown, settings) {
-                            window.location = settings.url;
-                            return false;
-                        };
-                        break;
-                }
+                options.onError = $(elem).attr('data-pjax-error');
             }
 
             return options;
@@ -385,9 +351,69 @@ if (typeof (jQuery) === 'function') {
             var options = $.extend(true, {}, $.ajaxSettings, PjaxDefaultOptions, options);
             options.url = parseURL(options.url).href;
 
+            if (typeof(options.onError) == 'string') {
+                switch (options.onError.toLowerCase()) {
+                    case 'abort' :
+                        options.onError = function (e, xhr, textstatus, errorThrown, settings, finalUrl, title) {
+                            return false;
+                        };
+                        break;
+                    case 'retry' :
+                        options.onError = function (e, xhr, textstatus, errorThrown, settings, finalUrl, title) {
+                            var settings = {
+                                url: settings.url,
+                                container: settings.container,
+                                fragment: settings.fragment,
+                                push: settings.push,
+                                replace: settings.replace,
+                                dataType: settings.dataType,
+                                type: settings.type,
+                                data: settings.data,
+                                timeout: 0,
+                                onError: function () {
+                                },
+                                onBeforeSend: settings.onBeforeSend,
+                                onStart: settings.onStart,
+                                onTimeout: settings.onTimeout,
+                                onSuccess: settings.onSuccess,
+                                onComplete: settings.onComplete,
+                                statusCode: settings.statusCode
+                            };
+                            $.pjax(settings);
+                        };
+                        break;
+                    case 'reload' :
+                        options.onError = function (e, xhr, textstatus, errorThrown, settings, finalUrl, title) {
+                            window.location = settings.url;
+                        };
+                        break;
+                    case 'continue404_or_relead' :
+                        options.onError = function (e, xhr, textstatus, errorThrown, settings, finalUrl, title) {
+                            if (xhr.status == 404) {
+                                document.title = title;
+                                var state = {
+                                    pjax: true,
+                                    finalUrl : finalUrl,
+                                    replaceStateNextTime: true,
+                                };
+                                if (settings.debug) {
+                                    console.log("PushState(404) " + finalUrl);
+                                    console.log(state);
+                                }
+                                if (history.state.replaceStateNextTime) window.history.replaceState(state, title, finalUrl);
+                                else window.history.pushState(state, title, finalUrl);
+                                $(PjaxDefaultOptions.container).html(xhr.responseText);
+                            } else {
+                                window.location = finalUrl;
+                            }
+                        };
+                        break;
+                }
+            }
+
             bindEvents(options);
 
-            var context = options.context = options.container = $(options.container);
+            var context = options.context = $(options.container);
             var target = options.target;
             var url = options.url;
             var hash = parseURL(url).hash;
@@ -424,18 +450,12 @@ if (typeof (jQuery) === 'function') {
             };
 
             options.error = function(xhr, textStatus, errorThrown) {
-                var respUrl = xhr.getResponseHeader('X-PJAX-URL');
-                if (respUrl) {
-                    url = respUrl;
-                }
-                fire('pjax:error', [xhr, textStatus, errorThrown, options]);
+                url = options['urlAddressBar'] || xhr.getResponseHeader('X-FinalURL') || url;
+                fire('pjax:error', [xhr, textStatus, errorThrown, options, url, xhr.getResponseHeader('X-Title') || document.title]);
             };
 
             options.success = function(data, status, xhr) {
-                var respUrl = xhr.getResponseHeader('X-PJAX-URL');
-                if (respUrl) {
-                    url = respUrl;
-                }
+                url = options['urlAddressBar'] || xhr.getResponseHeader('X-FinalURL') || url;
 
                 var title, oldTitle = document.title;
 
@@ -464,27 +484,37 @@ if (typeof (jQuery) === 'function') {
                 }
 
                 var state = {
-                    url : url,
-                    pjax : this.selector,
+                    pjax: true,
+                    finalUrl : url,
+                    container : options.container,
                     fragment : options.fragment,
                     timeout : options.timeout
                 };
 
                 if (options.replace) {
                     pjax.active = true;
-                    window.history.replaceState(state, document.title, options['urlAddressBar'] || xhr.getResponseHeader('X-FinalURL') || url);
+                    if (options.debug) {
+                        console.log("ReplaceState " + url);
+                        console.log(state);
+                    }
+                    window.history.replaceState(state, document.title, url);
                 } else if (options.push) {
                     // this extra replaceState before first push ensures good back button behavior
                     if (!pjax.active) {
-                        window.history.replaceState($.extend({}, state, {url : null}), oldTitle);
+                        window.history.replaceState($.extend({}, state, {finalUrl : null}), oldTitle);
                         pjax.active = true;
                     }
-                    window.history.pushState(state, document.title, options['urlAddressBar'] || xhr.getResponseHeader('X-FinalURL') || url);
+                    if (options.debug) {
+                        console.log("PushState " + url);
+                        console.log(state);
+                    }
+                    window.history.pushState(state, document.title, url);
                 }
 
                 // Google Analytics support
-                if ((options.replace || options.push) && window._gaq) {
-                    _gaq.push(['_trackPageview']);
+                if ((options.replace || options.push)) {
+                    if (window._gaq) _gaq.push(['_trackPageview']);
+                    else if (window.ga) ga('send', 'pageview', {page : url, title: title});
                 }
 
                 // If the URL has a hash in it, make sure the browser knows to navigate to the hash.
@@ -492,14 +522,15 @@ if (typeof (jQuery) === 'function') {
                     window.location.href = hash;
                 }
 
-                fire('pjax:success', [data, status, xhr, options]);
+                fire('pjax:success', [data, status, xhr, options, url]);
             };
 
             options.complete = function(xhr, textStatus) {
+                url = options['urlAddressBar'] || xhr.getResponseHeader('X-FinalURL') || url;
                 if (timeoutTimer) {
                     clearTimeout(timeoutTimer);
                 }
-                fire('pjax:complete', [xhr, textStatus, options]);
+                fire('pjax:complete', [xhr, textStatus, options, url]);
             };
 
             // Cancel the current request if we're already pjaxing
@@ -565,23 +596,26 @@ if (typeof (jQuery) === 'function') {
             if (initialPop) {
                 return;
             }
-            var state = event.state;
+            var state = history.state;
+            if (PjaxDefaultOptions.debug) {
+                console.log("PopState " + location.href);
+                console.log(state);
+            }
             if (state && state.pjax) {
-                var container = state.pjax;
-                if ($(container + '').length) {
+                var container = state.container || PjaxDefaultOptions.container;
+                if ($(container).length) {
                     $.pjax($.extend({}, PjaxDefaultOptions, {
-                        url : state.url || location.href,
-                        fragment : state.fragment,
+                        url : state.finalUrl || location.href,
+                        fragment : state.fragment || PjaxDefaultOptions.fragment,
                         container : container,
                         push : false,
-                        timeout : state.timeout
+                        timeout : state.timeout || PjaxDefaultOptions.timeout,
                     }));
                 } else {
                     window.location = location.href;
                 }
             }
         });
-        // if ($.inArray('state', $.event.props) < 0) $.event.props.push('state'); // $.event.props was removed in jQuery 3.0 but does not seem to be causing any issue if we comment this line... more testing needed...
 
         $.ajaxSetup({
             cache : true

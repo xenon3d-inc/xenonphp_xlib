@@ -32,7 +32,7 @@ class Expr {
                     $this->expression = preg_replace("#".preg_quote(Expr::TMP_REPLACEMENT_STR)."#", str_replace('$','\$',$value), $this->expression, 1);
                 }
             } else {
-                //TODO Throw error Missing replacement values for '?'
+                trigger_error("Missing replacement values for '?' in expression", E_USER_ERROR);
             }
         }
     }

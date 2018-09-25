@@ -11,7 +11,6 @@ class DbParser
     {
         // Get Table Data
         $query = "SHOW CREATE TABLE `" . $tableName . "`;\n";
-        //TODO Log Query
         $result = mysqli_query($mysqli_link, $query);
         
         if ($result && ($row = mysqli_fetch_row($result))) {
@@ -361,7 +360,7 @@ class DbParser
             }
 
             // AUTO_INCREMENT
-            if ($column->auto_increment != $fromDB->getColumn($columnName)->auto_increment) {
+            if ($column->auto_increment > $fromDB->getColumn($columnName)->auto_increment) {
                 $tableDataToUpdate['auto_increment'] = $column->auto_increment;
                 $colsToModify[$columnName] = $column;
             }
@@ -420,11 +419,11 @@ class DbParser
             $sqlLines[] = "ADD PRIMARY KEY (`" . $columnName . "`)";
         }
         foreach ($foreignKeysToModify as $columnName => $column) {
-            //TODO Throw Notice "You need to modify the Foreign Key manually in the Database for column `$column->column` in table `$current->getTable()->table`"
+            trigger_error("You need to modify the Foreign Key manually in the Database for column `$column->column` in table `".$current->getTable()->table."`", E_USER_NOTICE);
 //            $sqlLines[] = "";
         }
         foreach ($foreignKeysToRemove as $columnName => $column) {
-            //TODO Throw Notice "You need to remove the Foreign Key manually in the Database for column `$column->column` in table `$current->getTable()->table`"
+            trigger_error("You need to remove the Foreign Key manually in the Database for column `$column->column` in table `".$current->getTable()->table."`", E_USER_NOTICE);
 //            $sqlLines[] = "";
         }
         foreach ($foreignKeysToAdd as $columnName => $column) {

@@ -22,7 +22,7 @@ class Table
         if (preg_match("#^[a-z_][a-z0-9_-]*$#", $value)) {
             $this->table = $value;
         } else {
-            //TODO Throw notice "Invalid Table Name '$value' in $this->model"
+            trigger_error("Invalid Table Name '$value' in $this->model", E_USER_ERROR);
         }
     }
 
@@ -37,7 +37,7 @@ class Table
                 break;
 
             default :
-            //TODO Throw notice "Invalid Value '$value' for Engine in $this->model"
+                trigger_error("Invalid Value '$value' for Engine in $this->model", E_USER_ERROR);
         }
     }
 
@@ -88,7 +88,7 @@ class Table
                 if (property_exists($this, $key)) {
                     $this->$key = $value;
                 } else {
-                    //TODO Throw notice "Invalid Meta Option '$key' for $this->model"
+                    trigger_error("Invalid Meta Option '$key' for $this->model", E_USER_ERROR);
                 }
             }
         }

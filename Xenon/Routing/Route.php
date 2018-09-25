@@ -96,7 +96,6 @@ class Route {
      * @return boolean false for 404 NotFound, NULL if exact match not found, otherwise string the matched route key
      */
     public function getRouteKeyFromRouteUrl($routeUrl, $nbParams = 0, $lang = null) {
-        //TODO check route definitions and return true if found and set $this->route
         // Return true to stop here and take current route, return false to stop here and get 404, otherwise continue
         if ($lang === null && MULTILANG) {
             if (preg_match("#^/(".LANGS.")(/(.*)/?)?$#i", $routeUrl, $matches)) {

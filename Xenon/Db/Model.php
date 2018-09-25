@@ -167,12 +167,20 @@ class Model
         $this->_query = $query;
         $this->_index = 0;
     }
-    
+
     public function __get($name) {
+        return $this->get($name);
+    }
+
+    public function __set($name, $value) {
+        return $this->set($name, $value);
+    }
+
+    public function get($name, $lang = LANG) {
         if ($this->_lazyLoad) $this->reload();
         $func = "get_" . $name;
         if (method_exists($this, $func)) {
-            return $this->$func();
+            return $this->$func($lang);
         } else {
             $column = $this->_modelData->getField($name);
             if ($column) {
@@ -180,7 +188,8 @@ class Model
                 $handler_func = "handler_get_".$column->handler;
                 if (method_exists($this, $handler_func)) {
                     $value = $this->$columnName;
-                    if ($column->encrypted) $value = static::decrypt($value, $columnName);
+                    if ($column->translatable) $value = static::getTranslatable($value, $lang);
+                    if ($column->encrypted) $value = static::getEncrypted($value, $columnName);
                     return static::$handler_func($value, $column, $this);
                 } else {
                     //TODO Throw error Handler method '$handler_func' not found in model
@@ -191,7 +200,7 @@ class Model
         }
     }
     
-    public function __set($name, $value) {
+    public function set($name, $value, $lang = LANG) {
         if ($this->_lazyLoad) $this->reload();
         $this->_dirty = true;
         $func = "set_" . $name;
@@ -199,12 +208,13 @@ class Model
         if ($column) {
             $columnName = $column->getColumnName();
             if (method_exists($this, $func)) {
-                $this->$columnName = $this->$func($value);
+                $this->$columnName = $this->$func($value, $lang);
             } else {
                 $handler_func = "handler_set_".$column->handler;
                 if (method_exists($this, $handler_func)) {
                     $value = static::$handler_func($value, $column);
-                    if ($column->encrypted) $value = static::encrypt($value, $columnName);
+                    if ($column->encrypted) $value = static::setEncrypted($value, $columnName);
+                    if ($column->translatable) $value = static::setTranslatable($this->$columnName, $value, $lang);
                     $this->$columnName = $value;
                 } else {
                     //TODO Throw error Handler static method '$handler_func' not defined in model
@@ -214,18 +224,71 @@ class Model
             //TODO Throw error Column '$columnName' not found
         }
     }
-    
-    public static function encrypt($value, $columnName) {
-        $iv = bin2hex(openssl_random_pseudo_bytes(8));
-        return $iv.openssl_encrypt($value, \Xenon\Config\Security::$DB_ENCRYPTION_METHOD, "~!#&ff".get_called_class().$columnName.\Xenon\Config\Security::$DB_ENCRYPTION_KEY, false, $iv);
-    }
-    
-    public static function decrypt($value, $columnName) {
-        $iv = substr($value, 0, 16);
+
+    // @encrypted
+    public static function getEncrypted($dbValue, $columnName) {
+        $iv = substr($dbValue, 0, 16);
         if (strlen($iv) != 16) return null;
-        return openssl_decrypt(substr($value, 16), \Xenon\Config\Security::$DB_ENCRYPTION_METHOD, "~!#&ff".get_called_class().$columnName.\Xenon\Config\Security::$DB_ENCRYPTION_KEY, false, $iv);
+        return openssl_decrypt(substr($dbValue, 16), \Xenon\Config\Security::$DB_ENCRYPTION_METHOD, "~!#&ff".get_called_class().$columnName.\Xenon\Config\Security::$DB_ENCRYPTION_KEY, false, $iv);
     }
-    
+    public static function setEncrypted($newValue, $columnName) {
+        $iv = bin2hex(openssl_random_pseudo_bytes(8));
+        return $iv.openssl_encrypt($newValue, \Xenon\Config\Security::$DB_ENCRYPTION_METHOD, "~!#&ff".get_called_class().$columnName.\Xenon\Config\Security::$DB_ENCRYPTION_KEY, false, $iv);
+    }
+
+    // @translatable
+    public static function getTranslatable($dbValue, $lang = LANG) {
+        if (is_string($dbValue)) {
+            if ($dbValue === "") return "";
+            try {
+                $jsonValue = json_decode($dbValue, true);
+                if (gettype($jsonValue) == "NULL") {
+                    return $dbValue;
+                }
+                $dbValue = $jsonValue;
+            } catch (\Exception $e) {
+                return $dbValue;
+            }
+        }
+        if (!is_array($dbValue)) return $dbValue;
+        if (isset($dbValue[$lang])) return $dbValue[$lang];
+        if (isset($dbValue[DEFAULT_LANG])) return $dbValue[DEFAULT_LANG];
+        if (count($dbValue) == 0) return "";
+        return reset($dbValue);
+    }
+    public static function setTranslatable($dbValue, $newValue, $lang = LANG) {
+        if (!is_array($dbValue)) {
+            if (gettype($dbValue) == "NULL") {
+                $dbValue = [];
+            } else if (is_string($dbValue)) {
+                if ($dbValue === "") {
+                    $dbValue = [];
+                } else {
+                    try {
+                        $jsonValue = json_decode($dbValue, true);
+                        if (gettype($jsonValue) == "NULL") {
+                            $jsonValue = [DEFAULT_LANG => $dbValue];
+                        }
+                        $dbValue = $jsonValue;
+                    } catch (\Exception $e) {
+                        $dbValue = [DEFAULT_LANG => $dbValue];
+                    }
+                }
+            }
+        }
+        if (is_array($newValue)) {
+            $dbValue = array_merge($dbValue, $newValue);
+        } else {
+            $dbValue[$lang] = $newValue;
+        }
+        foreach ($dbValue as $key => $value) {
+            if (is_int($key)) {
+                unset($dbValue[$key]);
+            }
+        }
+        return json_encode($dbValue);
+    }
+
 
     /////////////////////////////////////////////////////////////////////////////
     // Handlers
@@ -293,7 +356,7 @@ class Model
     public static function handler_set_enum($value, Schema\Column $column) {
         return $value;
     }
-    
+
     // onetomany
     public static function handler_get_onetomany($value, Schema\Column $column, $modelRow) {
         if ($value) return $value;

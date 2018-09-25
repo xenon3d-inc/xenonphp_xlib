@@ -22,7 +22,7 @@ class Field {
             if ($this->modelData) {
                 $this->table = $this->modelData->getTable();
             } else {
-                //TODO throw error : Invalid model '$model'
+                trigger_error("Invalid model '$model'", E_USER_ERROR);
                 $model = "";
             }
             $this->model = $model;

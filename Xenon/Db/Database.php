@@ -17,12 +17,33 @@ class Database
      */
     public function __construct(array $options, array $models = []) {
         $this->db = mysqli_connect($options['host'], $options['user'], $options['pass'], $options['db']);
+        if (!empty($options['charset'])) {
+            mysqli_query($this->db, "SET NAMES ".$options['charset']);
+        }
         foreach ($models as $model) {
             if (array_key_exists($model, self::$instancePerModel)) {
-                //TODO Throw error "model already initialized for another database"
+                trigger_error("Model '$model' already initialized for another database", E_USER_WARNING);
                 return;
             }
-            (new \Xenon\Db\Schema\ModelData())->fromModel($model)->toDb($this->db);
+
+            if (DB_AUTO_UPDATE_STRUCTURE) {
+                $updateTime = date('YmdHms');
+                $query = (new \Xenon\Db\Schema\ModelData())->fromModel($model)->getCreateOrAlterQuery($this->db);
+                if ($query) {
+                    $modelname = str_replace('\\', '.', strtolower($model));
+                    if (mysqli_query($this->db, $query) === false) {
+                        trigger_error("Error while trying to update database structure for model '$modelname'\n" . mysqli_error($this->db) . "\nQuery: $query", E_USER_ERROR);
+                    } else {
+                        if (!is_dir(DB_UPDATES_CACHE_DIRECTORY."/$updateTime")) {
+                            mkdir(DB_UPDATES_CACHE_DIRECTORY."/$updateTime", 0770, true);
+                            if (is_dir(DB_UPDATES_CACHE_DIRECTORY."/$updateTime")) {
+                                file_put_contents(DB_UPDATES_CACHE_DIRECTORY."/$updateTime/$modelname.sql", $query);
+                            }
+                        }
+                    }
+                }
+            }
+
             self::$instancePerModel[$model] = $this;
         }
         self::$instances[] = $this;
@@ -30,7 +51,7 @@ class Database
     
     public static function getInstanceForModel($model) {
         if (!array_key_exists($model, self::$instancePerModel)) {
-            //TODO Throw error "model not initialized"
+            trigger_error("Model '$model' not initialized", E_USER_ERROR);
             return;
         }
         return self::$instancePerModel[$model];

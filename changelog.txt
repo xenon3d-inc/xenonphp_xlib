@@ -1,4 +1,6 @@
-0.5.0 - 2018-09-17
+0.5.0 - 2018-09-25
+    Huge Improvements in the MySQL Model System
+    Refactoring and added constants
     Added PJAX layout
     Added Loading Icon helper
     improved templates
