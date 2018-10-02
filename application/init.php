@@ -41,7 +41,10 @@ if (!defined('PJAX')) define('PJAX',(!empty($_SERVER['HTTP_X_PJAX'])));
 
 // Global Database Settings
 if (!defined('DB_AUTO_UPDATE_STRUCTURE')) define('DB_AUTO_UPDATE_STRUCTURE', true);
-if (!defined('DB_UPDATES_CACHE_DIRECTORY')) define('DB_UPDATES_CACHE_DIRECTORY', CACHE_PATH . "database_schema_updates");
+if (!defined('DB_UPDATES_CACHE_DIRECTORY')) define('DB_UPDATES_CACHE_DIRECTORY', CACHE_PATH . 'database_schema_updates');
+
+// Asset Minification and Caching
+if (!defined('ASSETS_MINIFY_AND_CACHE_PATH')) define('ASSETS_MINIFY_AND_CACHE_PATH', CACHE_PATH . 'minified_assets/');
 
 ///////////////////////////////////////////////////////////////////
 
