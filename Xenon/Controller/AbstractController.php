@@ -2,6 +2,8 @@
 
 namespace Xenon\Controller;
 
+// OLD STUFF... I MIGHT DEPRECATE THIS CLASS
+
 abstract class AbstractController
 {
     public function redirect($url) {
@@ -12,21 +14,21 @@ abstract class AbstractController
 
     public function replaceUrl($url) {
         header("X-ReplaceUrl: $url");
-	if (AJAX) {
-	    ob_clean();
-	    exit;
-	}
+    	if (AJAX) {
+    	    ob_clean();
+    	    exit;
+    	}
     }
-    
+
     public function getRoute() {
         return \Xenon\Routing\Route::$currentInstance;
     }
-    
+
     public function return404() {
         if (!headers_sent()) http_response_code(404);
         $this->forward('404');
     }
-    
+
     public function forward($view) {
         // Reset and Get View Buffer
         ob_clean();

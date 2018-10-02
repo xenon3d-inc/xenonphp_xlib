@@ -1,6 +1,6 @@
 <?php
 function X_include_start_buffer($filepath, $required = false, $once = false) {
-    global $X, $X_PROJECT, $X_ERROR, $X_CONFIG, $X_CHARSET, $X_ROUTE, $X_DB, $X_LAYOUT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT;
+    global $X, $X_PROJECT, $X_ERROR, $X_CONFIG, $X_CHARSET, $X_ROUTE, $X_DB, $X_LAYOUT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_USER;
     ob_start(OUTPUT_HANDLER);
     if ($required && once) {
         require_once $filepath;

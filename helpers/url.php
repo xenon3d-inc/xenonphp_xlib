@@ -1,7 +1,7 @@
 <?php
 
 /**
- * 
+ *
  * @param route string or bool(true) $route (true to use existing)
  * @param routeParams array or bool(true) $routeParams (true to use existing params) default empty
  * @param params array or bool(true) $params (true to use existing params) default empty
@@ -11,4 +11,9 @@
  */
 function X_url($route, $routeParams = [], $params = [], $lang = true, $canonical = false) {
     return \Xenon\Routing\Route::$currentInstance->getUrl($route, $routeParams, $params, $lang, $canonical);
+}
+
+function X_redirect($route, $routeParams = [], $params = [], $lang = true, $canonical = false) {
+    header((AJAX && !PJAX ? "X-Redirect: " : "Location: ") . X_url($route, $routeParams, $params, $lang, $canonical));
+    exit;
 }

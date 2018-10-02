@@ -400,7 +400,7 @@ if (typeof (jQuery) === 'function') {
                                     console.log("PushState(404) " + finalUrl);
                                     console.log(state);
                                 }
-                                if (history.state.replaceStateNextTime) window.history.replaceState(state, title, finalUrl);
+                                if (history.state && history.state.replaceStateNextTime) window.history.replaceState(state, title, finalUrl);
                                 else window.history.pushState(state, title, finalUrl);
                                 $(PjaxDefaultOptions.container).html(xhr.responseText);
                             } else {

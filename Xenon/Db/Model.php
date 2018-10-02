@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Xenon\Db;
 
@@ -7,22 +7,22 @@ use \Xenon\Db\Query\Helper\Field;
 
 class Model
 {
-    
+
     public $_isnew = null;
     public $_query = null;
     public $_index = null;
     public $_modelData = null;
     public $_original_values = [];
     public $_lazyLoad = false;
-    
+
     public $_children = [];
     public $_dirty = false;
-    
+
     // DEFAULT FIELDS
     /** @Column @id */
     public $id;
 
-    
+
     public function __construct(array $values = [], $rawData = false) {
         $this->_isnew = true;
         $this->_modelData = Schema\ModelData::get(get_called_class());
@@ -40,19 +40,19 @@ class Model
             }
         }
     }
-    
+
     public function initFromQuery($query, $index) {
         $this->_isnew = false;
         $this->_query = $query;
         $this->_index = $index;
         $this->_dirty = false;
-        
+
         foreach ($this->_modelData->getColumns() as $column => $columnData) {
             $columnName = $columnData->column;
             $this->_original_values[$column] = $this->$columnName;
         }
     }
-    
+
     public function reset() {
         $this->_dirty = false;
         $this->_children = [];
@@ -65,10 +65,10 @@ class Model
             }
         }
     }
-    
+
     public static function fetchAll() {
         $query = new Query\Select(get_called_class());
-        
+
         $query->execute();
         $results = [];
         while($row = $query->fetchRow()) {
@@ -76,15 +76,27 @@ class Model
         }
         return $results;
     }
-    
+
+    public static function fetchBy($field, $value = null) {
+        $query = new Query\Select(get_called_class());
+        if (is_array($field) && $value === null) {
+            foreach ($field as $k => $v) {
+                $query->andWhere($k, $v);
+            }
+        } else {
+            $query->where($field, $value);
+        }
+        return $query->fetchRow();
+    }
+
     public static function fetchById($id) {
         return (new Query\Select(get_called_class()))->where("id", $id)->fetchRow();
     }
-    
+
     public static function select(...$args) {
         return new Query\Select(get_called_class(), ...$args);
     }
-    
+
     public function count($columnName = null, $where = null, $distinct = null) {
         if ($columnName) {
             $column = $this->_modelData->getField($columnName);
@@ -95,25 +107,25 @@ class Model
                 if ($where !== null) $query->andWhere($where);
                 return $query->fetchCount();
             }
-            
+
         }
     }
-    
+
     public function save() {
         $model = get_called_class();
         $table = $this->_modelData->getTable();
         $link = Database::getInstanceForModel($model)->db;
-        
+
         // INSERT
         if ($this->_isnew || !$this->id) {
             $self = $this;
             $values = [];
-            $columns = implode(', ', 
+            $columns = implode(', ',
                 array_map(
                     function($columnData) use(&$values, $model, $self) {
                         $values[] = $self->$columnData;
                         return new Field($model, $columnData);
-                    }, 
+                    },
                     $this->_modelData->getColumns()
                 )
             );
@@ -121,7 +133,7 @@ class Model
             $query->execute();
             $this->id = mysqli_insert_id($link);
             $this->_lazyLoad = true;
-            
+
         // UPDATE
         } else {
             $values = "";
@@ -140,23 +152,23 @@ class Model
                 $this->_lazyLoad = true;
             }
         }
-        
+
         $this->_dirty = false;
-        
+
         foreach ($this->_children as $child) {
             $child->save();
         }
-        
+
         return $this;
     }
-    
+
     public function delete() {
         $model = get_called_class();
         $table = $this->_modelData->getTable();
         $query = new Query(new Expr("DELETE FROM `$table` WHERE `id` = ?", $model, $this->id));
         $query->execute();
     }
-    
+
     public function reload() {
         $this->_lazyLoad = false;
         $query = (new Query\Select(get_called_class()))->where("id", $this->id);
@@ -199,7 +211,7 @@ class Model
             }
         }
     }
-    
+
     public function set($name, $value, $lang = LANG) {
         if ($this->_lazyLoad) $this->reload();
         $this->_dirty = true;
@@ -292,7 +304,7 @@ class Model
 
     /////////////////////////////////////////////////////////////////////////////
     // Handlers
-    
+
     // string
     public static function handler_get_string($value, Schema\Column $column) {
         return $value;
@@ -300,7 +312,7 @@ class Model
     public static function handler_set_string($value, Schema\Column $column) {
         return $value;
     }
-    
+
     // number
     public static function handler_get_number($value, Schema\Column $column) {
         return $value;
@@ -308,7 +320,7 @@ class Model
     public static function handler_set_number($value, Schema\Column $column) {
         return $value;
     }
-    
+
     // date
     public static function handler_get_date($value, Schema\Column $column) {
         return new Query\Helper\DateTime($value);
@@ -316,7 +328,7 @@ class Model
     public static function handler_set_date($value, Schema\Column $column) {
         return (new Query\Helper\DateTime($value))->format();
     }
-    
+
     // time
     public static function handler_get_time($value, Schema\Column $column) {
         return $value;
@@ -324,7 +336,7 @@ class Model
     public static function handler_set_time($value, Schema\Column $column) {
         return $value;
     }
-    
+
     // bool
     public static function handler_get_bool($value, Schema\Column $column) {
         return !!$value;
@@ -332,7 +344,7 @@ class Model
     public static function handler_set_bool($value, Schema\Column $column) {
         return $value ? '1':'0';
     }
-    
+
     // json
     public static function handler_get_json($value, Schema\Column $column) {
         return json_decode($value, true);
@@ -340,7 +352,7 @@ class Model
     public static function handler_set_json($value, Schema\Column $column) {
         return json_encode($value);
     }
-    
+
     // id
     public static function handler_get_id($value, Schema\Column $column) {
         return $value;
@@ -348,7 +360,7 @@ class Model
     public static function handler_set_id($value, Schema\Column $column) {
         return $value;
     }
-    
+
     // enum
     public static function handler_get_enum($value, Schema\Column $column) {
         return $value;
@@ -360,7 +372,7 @@ class Model
     // onetomany
     public static function handler_get_onetomany($value, Schema\Column $column, $modelRow) {
         if ($value) return $value;
-        
+
         if ($column->onetomany && ($foreighColumn = (new Schema\ModelData)->get($column->onetomany['model'])->getField($column->onetomany['field'])) && $foreighColumn->manytoone) {
             $query = (new Query\Select($column->onetomany['model']))
                     ->where($column->onetomany['field'], $modelRow->{$foreighColumn->manytoone['field']});
@@ -381,6 +393,6 @@ class Model
             //TODO Throw error : OneToMany not configured properly on both sides
         }
     }
-    
-    
+
+
 }

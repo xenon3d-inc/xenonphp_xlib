@@ -31,7 +31,8 @@ if (!defined('DEFAULT_LANG')) define('DEFAULT_LANG', $_SERVER['DEFAULT_LANG']);
 // Urls
 if (!defined('BASE_URL')) define('BASE_URL', (($_BASE_URL=dirname($_SERVER['PHP_SELF']))=='/'?'':$_BASE_URL));
 if (!defined('URL')) define('URL', $_SERVER['REQUEST_URI']);
-if (!defined('HOST_URL')) define('HOST_URL', (((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://").$_SERVER['HTTP_HOST']);
+if (!defined('HTTPS')) define('HTTPS', ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443));
+if (!defined('HOST_URL')) define('HOST_URL', (HTTPS ? "https://" : "http://").$_SERVER['HTTP_HOST']);
 if (!defined('FULL_URL')) define('FULL_URL', HOST_URL.URL);
 if (!defined('ROUTE_URL')) define('ROUTE_URL', preg_replace("#^".preg_quote(BASE_URL, '#')."(.*)$#", "$1", URL));
 
