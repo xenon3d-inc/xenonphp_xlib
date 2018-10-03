@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Xenon\Db\Query\Helper;
 use \Xenon\Db\Database;
@@ -6,13 +6,13 @@ use \Xenon\Db\Database;
 class Expr {
     public $model = "";
     public $expression = "";
-    
+
     const TMP_REPLACEMENT_STR = '/%_VALUE_%/';
-    
+
     public function __construct($expression, $model = "", ...$args) {
         $this->expression = $expression;
         $this->model = $model;
-        
+
         if (count($args) > 0) {
             // Replace all '?' with values
             if (substr_count($this->expression, '?') <= count($args)) {
@@ -36,16 +36,16 @@ class Expr {
             }
         }
     }
-    
+
     public function escapeWithQuotes($value) {
         if ($value === null) return "NULL";
         return "'".Database::getInstanceForModel($this->model)->db->real_escape_string($value)."'";
     }
-    
+
     public function escape($value) {
         return Database::getInstanceForModel($this->model)->db->real_escape_string($value);
     }
-    
+
     public function __toString() {
         return $this->expression;
     }

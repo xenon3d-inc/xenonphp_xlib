@@ -23,10 +23,10 @@ class Column
     protected $ondelete = null; // 'cascade' ... ONLY FOR FOREIGN KEYS
 
     // Extended model annotations for advanced runtime features, does not alter table schema
-    protected $onetomany = null; // ['model'=>'ModelClassName', 'field'=>'propertyName']
-    protected $onetoone = null; // ['model'=>'ModelClassName', 'field'=>'propertyName']
-    protected $manytoone = null; // ['model'=>'ModelClassName', 'field'=>'propertyName']
-    protected $manytomany = null; // ['model'=>'ModelClassName', 'field'=>'propertyName']
+    protected $onetomany = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
+    protected $onetoone = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
+    protected $manytoone = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
+    // protected $manytomany = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
     protected $lazy = true; // adverse of join (you either set @lazy or @join, default is lazy) // lazy loads xToMany table only when we call the field
     protected $join = false; // adverse of lazy (you either set @lazy or @join, default is lazy) // joins xToMany table in the initial query and will already be available when we call the field
     protected $sort = null; // STRING // ex: id ASC
@@ -45,7 +45,7 @@ class Column
     {
         return $this->column;
     }
-    
+
     public function __toString() {
         return $this->getColumnName();
     }
@@ -351,6 +351,7 @@ class Column
     {
         if (preg_match(self::PREG_MODEL_FIELD, $value, $matches)) {
             $this->onetoone = ['model' => $matches[1], 'field' => $matches[2]];
+            $this->handler = "onetoone";
         } else {
             trigger_error("Invalid OneToOne format '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
         }
@@ -360,20 +361,21 @@ class Column
     {
         if (preg_match(self::PREG_MODEL_FIELD, $value, $matches)) {
             $this->manytoone = ['model' => $matches[1], 'field' => $matches[2]];
+            $this->handler = "manytoone";
         } else {
             trigger_error("Invalid ManyToOne format '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
         }
     }
 
-    protected function set_manytomany($value)
-    {
-        if (preg_match(self::PREG_MODEL_FIELD, $value, $matches)) {
-            $this->manytomany = ['model' => $matches[1], 'field' => $matches[2]];
-        } else {
-            trigger_error("Invalid ManyToMany format '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
-        }
-    }
-    
+    // protected function set_manytomany($value)
+    // {
+    //     if (preg_match(self::PREG_MODEL_FIELD, $value, $matches)) {
+    //         $this->manytomany = ['model' => $matches[1], 'field' => $matches[2]];
+    //     } else {
+    //         trigger_error("Invalid ManyToMany format '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
+    //     }
+    // }
+
     protected function set_lazy() {
         $this->lazy = true;
         $this->join = false;
@@ -383,12 +385,12 @@ class Column
         $this->lazy = false;
         $this->join = true;
     }
-    
+
     protected function set_sort($value)
     {
         $this->sort = $value;
     }
-    
+
     protected function set_filter($value)
     {
         $this->filter = $value;
@@ -407,10 +409,10 @@ class Column
             $this->translatable = true;
         }
     }
-    
+
     ///////////////////////////////////////////////////////////////////////
 
-    const PREG_MODEL_FIELD = "#^\(?([a-z_]+[a-z0-9_]*)[:\.\$\#, >-]*\(?([a-z_]+[a-z0-9_]*)\)?$#i";
+    const PREG_MODEL_FIELD = "#^\(?([a-z_]+[a-z0-9_\\\\]*)[:\.\#, >=]+\(?([a-z_]+[a-z0-9_]*)\)?$#i";
 
     public function __get($key)
     {

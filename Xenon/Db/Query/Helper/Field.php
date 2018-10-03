@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Xenon\Db\Query\Helper;
 
@@ -14,9 +14,9 @@ class Field {
     public $field = "";
     public $alias = "";
     public $expression = "";
-    
+
     public function __construct($model, $field = "*", $as = "") {
-        
+
         if ($model) {
             $this->modelData = ModelData::get($model);
             if ($this->modelData) {
@@ -27,7 +27,7 @@ class Field {
             }
             $this->model = $model;
         }
-        
+
         // AS
         if (is_numeric($as)) {
             $as = "";
@@ -36,13 +36,13 @@ class Field {
             $this->alias = $as;
             $as = " AS '".$this->alias."'";
         }
-        
+
         // Subquery
         if ($field instanceof Select) {
             $this->expression = "(".$field.")".$as;
             return;
         }
-        
+
         // Column object
         if ($field instanceof Column) {
             if ($model) {
@@ -52,7 +52,7 @@ class Field {
             }
             return;
         }
-        
+
         // Wildcard
         if ($field === "*") {
             if ($model) {
@@ -62,18 +62,19 @@ class Field {
             }
             return;
         }
-        
+
         // other expressions
         if (!$model || $field instanceof Expr || !preg_match("#^[a-z_][a-z0-9_]*$#i", $field)) {
             $this->expression = "".$field.$as;
             return;
         }
-        
+
         // Field name
+        if ($this->modelData) $field = $this->modelData->getFieldOrColumn($field);
         $this->field = Database::getInstanceForModel($this->model)->db->real_escape_string($field);
         $this->expression = "`".$this->table."`.`".$this->field."`".$as;
     }
-    
+
     public function __toString() {
         return $this->expression;
     }

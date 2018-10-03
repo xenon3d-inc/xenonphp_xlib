@@ -7,16 +7,16 @@ class ModelData
     protected $table;
     protected $fields;
     protected $columns;
-    
+
     protected static $instances = [];
-    
+
     public static function get($className) {
         if (!in_array($className, self::$instances)) {
             self::$instances[$className] = (new ModelData)->fromModel($className);
         }
         return self::$instances[$className];
     }
-    
+
     public function getTable()
     {
         return $this->table;
@@ -48,6 +48,17 @@ class ModelData
         return false;
     }
 
+    public function getFieldOrColumn($name)
+    {
+        if (isset($this->fields[$name])) {
+            return $this->fields[$name];
+        }
+        if (isset($this->columns[$name])) {
+            return $this->columns[$name];
+        }
+        return false;
+    }
+
     public function fromModel($className)
     {
         $this->table = ModelParser::getTable($className);
@@ -55,7 +66,7 @@ class ModelData
         $this->columns = array();
         foreach ($this->fields as $fieldName => $fieldData) {
             if ($fieldData->column) {
-                $this->columns[$fieldName] = $fieldData;
+                $this->columns[$fieldData->column] = $fieldData;
             }
         }
         return $this;

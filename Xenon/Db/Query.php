@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Xenon\Db;
 
@@ -11,16 +11,16 @@ class Query
     public $model = "";
     public $modelData = null;
     public $table = "";
-    
+
     protected $query;
     protected $where = null;
     protected $orderby = "";
     protected $limit = "";
     protected $offset = "";
-    
+
     protected $resultset = null;
     protected $resultindex = 0;
-    
+
     public function __construct($query = "", $model = null) {
         if ($query instanceof Query\Helper\Expr && $model == null) {
             $model = $query->model;
@@ -33,11 +33,11 @@ class Query
         }
         $this->query = $query;
     }
-    
+
     public function __toString() {
         return $this->query;
     }
-    
+
     public function orderBy($fields) {
         if (!empty($fields)) {
             if (!is_array($fields)) {
@@ -58,27 +58,27 @@ class Query
                         $value = "ASC";
                     }
                     if (!preg_match("#^(A|DE)SC$#i", $value)) {
-                        //TODO Throw error : Field values need to be either ASC or DESC
+                        trigger_error("Error: Field values need to be either ASC or DESC in orderBy clause", E_USER_ERROR);
                         return;
                     }
                     $this->orderby .= (new Query\Helper\Field($this->model, $key)) . " " . strtoupper($value);
                 }
             }
         } else {
-            //TODO Throw error : Fields param cannot be empty in orderBy clause
+            trigger_error("Error: Fields param cannot be empty in orderBy clause", E_USER_ERROR);
         }
         return $this;
     }
-    
+
     public function offset($offset) {
         if (is_numeric($offset)) {
             $this->offset = $offset;
         } else {
-            //TODO Throw error : param need to be integer
+            trigger_error("Error: Param need to be integer for offset sql clause", E_USER_ERROR);
         }
         return $this;
     }
-    
+
     public function limit($limit, $arg2 = null) {
         if ($arg2) {
             return $this->limit($arg2)->offset($limit);
@@ -86,34 +86,34 @@ class Query
         if (is_numeric($limit)) {
             $this->limit = $limit;
         } else {
-            //TODO Throw error : param need to be integer
+            trigger_error("Error: Param need to be integer for limit sql clause", E_USER_ERROR);
         }
         return $this;
     }
-    
+
     public function where(...$args) {
         if ($this->where) $this->where->where($this->model, ...$args);
         else $this->where = new Where($this->model, ...$args);
         return $this;
     }
-    
+
     public function andWhere(...$args) {
         if ($this->where) $this->where->andWhere($this->model, ...$args);
         else $this->where = new Where($this->model, ...$args);
         return $this;
     }
-    
+
     public function orWhere(...$args) {
         if ($this->where) $this->where->orWhere($this->model, ...$args);
         else $this->where = new Where($this->model, ...$args);
         return $this;
     }
-    
+
     public function execute(Database $database = null) {
         $this->reset();
         if ($database === null) {
             if (!$this->model) {
-                //TODO Throw error "Model or database not set for this query"
+                trigger_error("Model or database not set for this query", E_USER_ERROR);
                 return;
             }
             $database = Database::getInstanceForModel($this->model);
@@ -121,14 +121,11 @@ class Query
         Database::$queries[] = (string)$this;
         $this->resultset = mysqli_query($database->db, (string)$this);
         if ($this->resultset === false) {
-            
-            //TODO Handle SQL error : $database->db->error;
-            if (DISPLAY_ERRORS && DEV) echo $database->db->error . ", Query: ".$this;
-            
+            trigger_error($database->db->error . ", Query: ".$this, E_USER_ERROR);
         }
         return $this;
     }
-    
+
     public function fetchCount($field = 'COUNT') {
         if (!$this->resultset) {
             $this->execute();
@@ -138,7 +135,7 @@ class Query
         }
         return 0;
     }
-    
+
     public function fetchRow() {
         if (!$this->resultset) {
             $this->execute();
@@ -155,7 +152,7 @@ class Query
         }
         return $result;
     }
-    
+
     public function fetchAll() {
         $this->execute();
         $results = [];
@@ -164,7 +161,7 @@ class Query
         }
         return $results;
     }
-    
+
     public function reset() {
         if ($this->resultset) mysqli_free_result($this->resultset);
         $this->resultset = null;
