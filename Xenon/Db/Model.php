@@ -65,6 +65,14 @@ class Model
         }
     }
 
+    public static function begin() {
+        (new Query("begin"))->execute();
+    }
+
+    public static function commit() {
+        (new Query("commit"))->execute();
+    }
+
     public static function fetchAll() {
         $query = new Query\Select(get_called_class());
 
@@ -170,6 +178,17 @@ class Model
     public function reload() {
         $this->_lazyLoad = false;
         $query = (new Query\Select(get_called_class()))->where("id", $this->id);
+        $tmp = $query->fetchRow();
+        $this->_original_values = $tmp->_original_values;
+        $this->reset();
+        $this->_isnew = false;
+        $this->_query = $query;
+        $this->_index = 0;
+    }
+
+    public function reloadForUpdate() {
+        $this->_lazyLoad = false;
+        $query = (new Query\SelectForUpdate(get_called_class()))->where("id", $this->id);
         $tmp = $query->fetchRow();
         $this->_original_values = $tmp->_original_values;
         $this->reset();

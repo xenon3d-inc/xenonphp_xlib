@@ -118,8 +118,9 @@ class Query
             }
             $database = Database::getInstanceForModel($this->model);
         }
-        Database::$queries[] = (string)$this;
-        $this->resultset = mysqli_query($database->db, (string)$this);
+        $query = (string)$this;
+        Database::$queries[] = $query;
+        $this->resultset = mysqli_query($database->db, $query);
         if ($this->resultset === false) {
             trigger_error($database->db->error . ", Query: ".$this, E_USER_ERROR);
         }
