@@ -27,8 +27,8 @@ class Column
     protected $onetoone = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
     protected $manytoone = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
     // protected $manytomany = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
-    protected $lazy = true; // adverse of join (you either set @lazy or @join, default is lazy) // lazy loads xToMany table only when we call the field
-    protected $join = false; // adverse of lazy (you either set @lazy or @join, default is lazy) // joins xToMany table in the initial query and will already be available when we call the field
+    protected $lazy = true; // adverse of join (you either set @lazy or @join, default is lazy) // lazy loads xToOne table only when we call the field
+    protected $join = false; // adverse of lazy (you either set @lazy or @join, default is lazy) // joins xToOne table in the initial query and will already be available when we call the field
     protected $sort = null; // STRING // ex: id ASC
     protected $filter = null; // STRING // ex: `active`=true
     protected $encrypted = false; // BOOL | empty=true | unset=false
@@ -36,7 +36,7 @@ class Column
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Runtime model members, these are not annotions
+    // Runtime model members, these are not annotations
     public $model, $field;
     public $handler = 'string'; // string | number | date | time | bool | json | id | enum | onetomany
     public $enum = array();
@@ -234,6 +234,7 @@ class Column
             }, preg_split("# *[,;\|]+ *#i", $matches[2]));
             return;
         }
+        // Unknown column type
         trigger_error("Invalid Column Type '$value' for field `$this->field` in model $this->model", E_USER_ERROR);
     }
 

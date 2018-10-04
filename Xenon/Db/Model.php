@@ -364,6 +364,9 @@ class Model
         return $value;
     }
     public static function handler_set_enum($value, Schema\Column $column) {
+        if (!in_array($value, $column->enum)) {
+            trigger_error("Value not valid for ENUM field `$column->field` in model $column->model", E_USER_ERROR);
+        }
         return $value;
     }
 
