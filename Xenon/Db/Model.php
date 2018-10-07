@@ -66,11 +66,11 @@ class Model
     }
 
     public static function begin() {
-        (new Query("begin"))->execute();
+        (new Query("begin"))->execute(Database::getInstanceForModel(get_called_class()));
     }
 
     public static function commit() {
-        (new Query("commit"))->execute();
+        (new Query("commit"))->execute(Database::getInstanceForModel(get_called_class()));
     }
 
     public static function fetchAll() {

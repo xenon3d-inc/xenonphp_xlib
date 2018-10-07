@@ -5,6 +5,7 @@ class Route {
 
     // Route Public Properties
     public $lang = DEFAULT_LANG;
+    public $view;
     public $viewFile;
     public $route = '';
     public $params = array();
@@ -18,7 +19,8 @@ class Route {
     function __construct(array $routes = array()) {
         self::$currentInstance = $this;
         $this->routes = $routes;
-        $this->viewFile = VIEW_PATH.'index.phtml';
+        $this->view = 'index';
+        $this->viewFile = VIEW_PATH.$this->view.'.phtml';
 
         if ( // Stop at the first function that returns false
             $this->prepare_url() === false ||
@@ -31,9 +33,12 @@ class Route {
         }
     }
 
-    public function setRoute($route) {
+    public function setRoute($route, $routeParams = null) {
         if ($this->decode_route($route) === false) {
             $this->return404();
+        }
+        if ($routeParams !== null) {
+            $this->setRouteParams($routeParams);
         }
     }
 
@@ -77,8 +82,12 @@ class Route {
                 return false;
             }
             if ($this->route !== null) {
-                $this->viewFile = VIEW_PATH . $this->route . '.phtml';
-                if (!is_file($this->viewFile)) $this->viewFile = str_replace('admin/', '', $this->viewFile);
+                $this->view = $this->route;
+                $this->viewFile = VIEW_PATH . $this->view . '.phtml';
+                if (!is_file($this->viewFile) && preg_match("#".preg_quote(ADMIN_URL_COMPONENT)."/#", $this->view) ) {
+                    $this->view = str_replace(ADMIN_URL_COMPONENT.'/', '', $this->view);
+                    $this->viewFile = str_replace(ADMIN_URL_COMPONENT.'/', '', $this->viewFile);
+                }
                 break;
             }
             if (count($this->routeArray) == 0) {
@@ -126,7 +135,8 @@ class Route {
                             return $key;
                         }
                     } else {
-                        // data[url] not specified... More options to be added in the future
+                        // data[url] not specified
+                        if ($key === $routeUrl) return $key;
                     }
                 } elseif ($data === $routeUrl) return $key;
             }
@@ -148,7 +158,7 @@ class Route {
                         $route = $this->routes[$route]['url'];
                     }
                 } else {
-                    // data[url] not specified... More options to be added in the future
+                    // data[url] not specified... route url = route key
                 }
             } else {
                 $route = $this->routes[$route];
@@ -213,7 +223,8 @@ class Route {
     public function return404() {
         if (!headers_sent()) http_response_code(404);
         $this->route = null;
-        $this->viewFile = VIEW_PATH . '404.phtml';
+        $this->view = '404';
+        $this->viewFile = VIEW_PATH . $this->view.'.phtml';
     }
 
     public function getTranslatedUrl($lang) {
@@ -232,6 +243,10 @@ class Route {
         $this->routeParams[$index] = $value;
     }
 
+    public function setRouteParams(array $routeParams) {
+        $this->routeParams = $routeParams;
+    }
+
     public function getRouteParam($index = 0, $default = null) {
         if (!is_numeric($index) && !empty($this->routes[$this->route]['params']) && is_array($this->routes[$this->route]['params'])) {
             foreach ($this->routes[$this->route]['params'] as $i => $val) {
@@ -242,6 +257,28 @@ class Route {
             }
         }
         return isset($this->routeParams[$index]) ? $this->routeParams[$index] : $default;
+    }
+
+    public function execute() {
+        global $X_LAYOUT, $X_PROJECT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT;
+
+        // Route Callable Function
+        if (!empty($this->routes[$this->route]['function'])) {
+            call_user_func_array($this->routes[$this->route]['function'], $this->routeParams);
+        }
+
+        // Get View Content
+        $X_VIEW_CONTENT = X_include_return($this->viewFile);
+
+        // Page Title
+        if (!isset($X_TITLE)) $X_TITLE = $X_PROJECT . (!empty($X_PAGETITLE)?' - '.$X_PAGETITLE : '');
+
+        // Page Layout
+        if (!empty($X_LAYOUT)) {
+            X_include(LAYOUT_PATH.$X_LAYOUT.".phtml");
+        } else {
+            echo $X_VIEW_CONTENT;
+        }
     }
 
     public function __toString() {

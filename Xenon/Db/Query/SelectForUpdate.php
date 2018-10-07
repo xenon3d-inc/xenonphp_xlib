@@ -2,7 +2,7 @@
 
 namespace Xenon\Db\Query;
 
-class SelectForUpdate extends \Xenon\Db\Query
+class SelectForUpdate extends Select
 {
     protected $fields = [];
 

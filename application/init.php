@@ -35,6 +35,7 @@ if (!defined('HTTPS')) define('HTTPS', ((!empty($_SERVER['HTTPS']) && $_SERVER['
 if (!defined('HOST_URL')) define('HOST_URL', (HTTPS ? "https://" : "http://").$_SERVER['HTTP_HOST']);
 if (!defined('FULL_URL')) define('FULL_URL', HOST_URL.URL);
 if (!defined('ROUTE_URL')) define('ROUTE_URL', preg_replace("#^".preg_quote(BASE_URL, '#')."(.*)$#", "$1", URL));
+if (!defined('ADMIN_URL_COMPONENT')) define('ADMIN_URL_COMPONENT', 'admin');
 
 // AJAX
 if (!defined('AJAX')) define('AJAX',((!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')));
