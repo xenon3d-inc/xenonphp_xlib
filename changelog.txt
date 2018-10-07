@@ -1,4 +1,4 @@
-0.5.0 - 2018-10-01
+0.5.0 - 2018-10-06
     Added config-file texts for i18n
     Added Asset minifying and caching system
     Huge Improvements in the MySQL Model System
@@ -9,6 +9,7 @@
     modified URL constants
     Added setup.sh
     Added X_redirect function in url helper
+    Added BaseController, removed AbstractController
 
 0.4.3 - 2018-08-21
     improved templates
