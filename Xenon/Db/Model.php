@@ -23,21 +23,48 @@ class Model
     public $id;
 
 
+    // Constructor
     public function __construct(array $values = [], $rawData = false) {
         $this->_isnew = true;
         $this->_modelData = Schema\ModelData::get(get_called_class());
         if ($rawData) {
             foreach ($values as $key => $value) {
-                $fieldName = @$this->_modelData->getColumn($key)->field;
-                if ($fieldName) $this->$fieldName = $value;
+                if (strpos($key, '.') === false) {
+                    $columnData = @$this->_modelData->getColumn($key);
+                    if ($columnData) {
+                        $fieldName = $columnData->field;
+                        $columnName = $columnData->column;
+                        $this->$fieldName = $value;
+                        if ($fieldName != $columnName) $this->$columnName = $value;
+                    } else {
+                        //TODO implement a way to see additional fields not present in the model
+                    }
+                } else {
+                    //TODO implement xToOne Automatic JOIN
+                }
             }
         } else {
-            foreach ($this->_modelData->getFields() as $field => $columnData) {
+            foreach ($this->_modelData->getFields() as $fieldName => $columnData) {
                 if ($columnData->type == 'timestamp' && $columnData->default == 'current_timestamp') {
-                    $this->{$columnData->column} = (new Query\Helper\DateTime)->format();
+                    $this->$fieldName = (new Query\Helper\DateTime)->format();
                 } else {
-                    $this->__set($field, isset($values[$field]) ? $values[$field] : ($columnData->id && $columnData->null ? NULL : $columnData->default));
+                    $columnName = $columnData->column;
+                    $value = $columnData->id && $columnData->null ? NULL : $columnData->default;
+                    if (isset($values[$fieldName])) {
+                        $value = $values[$fieldName];
+                        unset($values[$fieldName]);
+                    } else if ($fieldName != $columnName && isset($values[$columnName])) {
+                        $value = $values[$columnName];
+                        unset($values[$columnName]);
+                    }
+                    $this->set($fieldName, $value);
+                    if ($fieldName != $columnName) {
+                        $this->set($columnName, $value);
+                    }
                 }
+            }
+            foreach ($values as $key => $value) {
+                $this->set($key, $value);
             }
         }
     }
@@ -75,8 +102,22 @@ class Model
 
     public static function fetchAll() {
         $query = new Query\Select(get_called_class());
+        $results = [];
+        while($row = $query->fetchRow()) {
+            $results[$row->id] = $row;
+        }
+        return $results;
+    }
 
-        $query->execute();
+    public static function fetchAllBy($field, $value = null) {
+        $query = new Query\Select(get_called_class());
+        if (is_array($field) && $value === null) {
+            foreach ($field as $k => $v) {
+                $query->andWhere($k, $v);
+            }
+        } else {
+            $query->where($field, $value);
+        }
         $results = [];
         while($row = $query->fetchRow()) {
             $results[$row->id] = $row;
@@ -211,15 +252,20 @@ class Model
         if (method_exists($this, $func)) {
             return $this->$func($lang);
         } else {
-            $column = $this->_modelData->getFieldOrColumn($name);
-            if ($column) {
-                $columnName = $column->field;
-                $handler_func = "handler_get_".$column->handler;
+            $columnData = $this->_modelData->getFieldOrColumn($name);
+            if ($columnData) {
+                $fieldName = $columnData->field;
+                $columnName = $columnData->column;
+                // If we are getting the column name and its different than the field name, return the raw unparsed value directly from the database
+                if ($fieldName != $columnName && $name == $columnName) {
+                    return $this->$columnName;
+                }
+                $handler_func = "handler_get_".$columnData->handler;
                 if (method_exists($this, $handler_func)) {
-                    $value = $this->$columnName;
-                    if ($column->translatable) $value = static::getTranslatable($value, $lang);
-                    if ($column->encrypted) $value = static::getEncrypted($value, $columnName);
-                    return static::$handler_func($value, $column, $this);
+                    $value = $this->$fieldName;
+                    if ($columnData->translatable) $value = static::getTranslatable($value, $lang);
+                    if ($columnData->encrypted) $value = static::getEncrypted($value, $fieldName);
+                    return static::$handler_func($value, $columnData, $this);
                 } else {
                     trigger_error("Handler static method '$handler_func' not defined in model ".get_called_class(), E_USER_ERROR);
                 }
@@ -233,18 +279,24 @@ class Model
         if ($this->_lazyLoad) $this->reload();
         $this->_dirty = true;
         $func = "set_" . $name;
-        $column = $this->_modelData->getFieldOrColumn($name);
-        if ($column) {
-            $columnName = $column->field;
+        $columnData = $this->_modelData->getFieldOrColumn($name);
+        if ($columnData) {
+            $fieldName = $columnData->field;
+            $columnName = $columnData->column;
             if (method_exists($this, $func)) {
-                $this->$columnName = $this->$func($value, $lang);
+                $this->$fieldName = $this->$func($value, $lang);
             } else {
-                $handler_func = "handler_set_".$column->handler;
-                if (method_exists($this, $handler_func)) {
-                    $value = static::$handler_func($value, $column, $this);
-                    if ($column->encrypted) $value = static::setEncrypted($value, $columnName);
-                    if ($column->translatable) $value = static::setTranslatable($this->$columnName, $value, $lang);
+                // If we are setting the column name and its different than the field name, set the raw value directly into the database
+                if ($fieldName != $columnName && $name == $columnName) {
                     $this->$columnName = $value;
+                    return;
+                }
+                $handler_func = "handler_set_".$columnData->handler;
+                if (method_exists($this, $handler_func)) {
+                    $value = static::$handler_func($value, $columnData, $this);
+                    if ($columnData->encrypted) $value = static::setEncrypted($value, $fieldName);
+                    if ($columnData->translatable) $value = static::setTranslatable($this->$fieldName, $value, $lang);
+                    $this->$fieldName = $value;
                 } else {
                     trigger_error("Handler static method '$handler_func' not defined in model ".get_called_class(), E_USER_ERROR);
                 }
@@ -390,20 +442,21 @@ class Model
     }
 
     // OneToOne
-    public static function handler_get_onetoone($value, Schema\Column $column, $modelRow) {
+    public static function handler_get_onetoone($value, Schema\Column $column, &$modelRow) {
+        if (is_object($value)) return $value;
         if ($column->onetoone) {
             $query = (new Query\Select($column->onetoone['model']))
                     ->where($column->onetoone['field'], $value);
             if ($column->filter) $query->where(new Expr($column->filter));
             if ($column->sort) $query->orderBy($column->sort);
-            $row = $column->{$column->field} = $query->fetchRow();
+            $row = $modelRow->{$column->field} = $query->fetchRow();
             $modelRow->_children = array_merge($modelRow->_children, [$row]);
             return $row;
         } else {
             trigger_error("OneToOne not configured properly on both sides", E_USER_ERROR);
         }
     }
-    public static function handler_set_onetoone($value, Schema\Column $column, $modelRow) {
+    public static function handler_set_onetoone($value, Schema\Column $column, &$modelRow) {
         if ($value === null) return;
         if ($column->onetoone) {
             if (is_array($value)) {
@@ -423,20 +476,21 @@ class Model
     }
 
     // ManyToOne (handle almost identical to OneToOne...)
-    public static function handler_get_manytoone($value, Schema\Column $column, $modelRow) {
+    public static function handler_get_manytoone($value, Schema\Column $column, &$modelRow) {
+        if (is_object($value)) return $value;
         if ($column->manytoone) {
             $query = (new Query\Select($column->manytoone['model']))
                     ->where($column->manytoone['field'], $value);
             if ($column->filter) $query->where(new Expr($column->filter));
             if ($column->sort) $query->orderBy($column->sort);
-            $row = $column->{$column->field} = $query->fetchRow();
+            $row = $modelRow->{$column->field} = $query->fetchRow();
             $modelRow->_children = array_merge($modelRow->_children, [$row]);
             return $row;
         } else {
             trigger_error("ManyToOne not configured properly on both sides for field `$column->field` in model $column->model", E_USER_ERROR);
         }
     }
-    public static function handler_set_manytoone($value, Schema\Column $column, $modelRow) {
+    public static function handler_set_manytoone($value, Schema\Column $column, &$modelRow) {
         if ($value === null) return;
         if ($column->manytoone) {
             if (is_array($value)) {
@@ -456,28 +510,28 @@ class Model
     }
 
     // OneToMany
-    public static function handler_get_onetomany($value, Schema\Column $column, $modelRow) {
-        if ($value) return $value;
+    public static function handler_get_onetomany($value, Schema\Column $column, &$modelRow) {
+        if (is_array($value)) return $value;
         if ($column->onetomany && ($foreignColumn = (new Schema\ModelData)->get($column->onetomany['model'])->getField($column->onetomany['field'])) && $foreignColumn->manytoone) {
             $query = (new Query\Select($column->onetomany['model']))
                     ->where($column->onetomany['field'], $modelRow->{$foreignColumn->manytoone['field']});
             if ($column->filter) $query->where(new Expr($column->filter));
             if ($column->sort) $query->orderBy($column->sort);
-            $values = $column->{$column->field} = $query->fetchAll();
+            $values = $modelRow->{$column->field} = $query->fetchAll();
             $modelRow->_children = array_merge($modelRow->_children, $values);
             return $values;
         } else {
             trigger_error("OneToMany not configured properly on both sides for field `$column->field` in model $column->model", E_USER_ERROR);
         }
     }
-    public static function handler_set_onetomany($values, Schema\Column $column, $modelRow) {
+    public static function handler_set_onetomany($values, Schema\Column $column, &$modelRow) {
         if ($values === null) return;
         if ($column->onetomany && ($foreignColumn = (new Schema\ModelData)->get($column->onetomany['model'])->getField($column->onetomany['field'])) && $foreignColumn->manytoone) {
             if (!is_array($values)) {
                 trigger_error("Invalid data passed to OneToMany field `$column->field` in model $column->model", E_USER_ERROR);
             }
-            if ($this->_isnew) {
-                $this->save();
+            if ($modelRow->_isnew) {
+                $modelRow->save();
             }
             foreach ($values as $value) {
                 if (is_array($value)) {
@@ -485,7 +539,7 @@ class Model
                     $value = new $className($value);
                 }
                 if (is_object($value)) {
-                    $value->{$column->onetomany['field']} = $this->{$foreignColumn->manytoone['field']};
+                    $value->{$column->onetomany['field']} = $modelRow->{$foreignColumn->manytoone['field']};
                     $value->save();
                 } else {
                     trigger_error("Invalid data passed to OneToMany field `$column->field` in model $column->model", E_USER_ERROR);

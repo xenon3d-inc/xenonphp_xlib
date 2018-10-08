@@ -4,20 +4,9 @@ namespace Xenon\Controller;
 
 abstract class BaseController
 {
-    public function redirect($url) {
-        header((AJAX? 'X-Redirect' : 'Location').": $url");
+    public function redirect($route, $routeParams = [], $params = [], $lang = true) {
+        header("Location: ".X_url($route, $routeParams, $params, $lang));
         $this->exit();
-    }
-
-    public function replaceUrl($url) {
-        header("X-ReplaceUrl: $url");
-    	if (AJAX) {
-    	    $this->exit();
-    	}
-    }
-
-    public function getRoute() {
-        return \Xenon\Routing\Route::$currentInstance;
     }
 
     public function return404() {
@@ -38,9 +27,7 @@ abstract class BaseController
     }
 
     public function cleanOutputBuffers() {
-        while (ob_get_level()) {
-            ob_clean();
-        }
+        while (ob_get_level()) ob_end_clean();
     }
 
     public function exit() {

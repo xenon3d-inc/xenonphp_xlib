@@ -13,7 +13,8 @@ function X_url($route, $routeParams = [], $params = [], $lang = true, $canonical
     return \Xenon\Routing\Route::$currentInstance->getUrl($route, $routeParams, $params, $lang, $canonical);
 }
 
-function X_redirect($route, $routeParams = [], $params = [], $lang = true, $canonical = false) {
-    header((AJAX && !PJAX ? "X-Redirect: " : "Location: ") . X_url($route, $routeParams, $params, $lang, $canonical));
+function X_redirect($route, $routeParams = [], $params = [], $lang = true) {
+    header("Location: ".X_url($route, $routeParams, $params, $lang));
+    while (ob_get_level()) ob_end_clean();
     exit;
 }

@@ -19,14 +19,14 @@ class Column
     protected $onupdate = null; // 'cascade' for foreign keys | ON UPDATE 'CURRENT_TIMESTAMP'
 
     // Foreign keys stuff (foreign_key will need to be updated manually in the database if modified)
-    protected $foreign_key = null; // ['model'=>'ModelClassName', 'field'=>'propertyName', 'table'=>'tableName', 'column'=>'columnName']
+    protected $foreign_key = null; // ModelClassName.propertyName   --->   ['model'=>'ModelClassName', 'field'=>'propertyName', 'table'=>'tableName', 'column'=>'columnName']
     protected $ondelete = null; // 'cascade' ... ONLY FOR FOREIGN KEYS
 
     // Extended model annotations for advanced runtime features, does not alter table schema
-    protected $onetomany = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
-    protected $onetoone = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
-    protected $manytoone = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
-    // protected $manytomany = null; // ModelClassName.propertyName   //   ['model'=>'ModelClassName', 'field'=>'propertyName']
+    protected $onetomany = null; // ModelClassName.propertyName   --->   ['model'=>'ModelClassName', 'field'=>'propertyName']
+    protected $onetoone = null; // ModelClassName.propertyName   --->   ['model'=>'ModelClassName', 'field'=>'propertyName']
+    protected $manytoone = null; // ModelClassName.propertyName   --->   ['model'=>'ModelClassName', 'field'=>'propertyName']
+    // protected $manytomany = null; // ModelClassName.propertyName   --->   ['model'=>'ModelClassName', 'field'=>'propertyName']
     protected $lazy = true; // adverse of join (you either set @lazy or @join, default is lazy) // lazy loads xToOne table only when we call the field
     protected $join = false; // adverse of lazy (you either set @lazy or @join, default is lazy) // joins xToOne table in the initial query and will already be available when we call the field
     protected $sort = null; // STRING // ex: id ASC
