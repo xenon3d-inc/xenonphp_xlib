@@ -41,16 +41,16 @@ class Query
     public function orderBy($fields) {
         if (!empty($fields)) {
             if (!is_array($fields)) {
-                if (preg_match("#^\s*(\w+)\s+((a|de)sc)\s*$#i", $fields, $matches)) {
-                    $fields = [$matches[1] => strtoupper($matches[2])];
+                if (preg_match("#^\s*(\w+)\s+((a|de)sc)?\s*$#i", $fields, $matches)) {
+                    $fields = [$matches[1] => strtoupper(!empty($matches[2])?$matches[2]:'ASC')];
                 } else {
-                    $fields = [$fields => 'ASC'];
+                    $fields = [new Query\Helper\Expr($fields)];
                 }
             }
             $this->orderby = "";
             foreach ($fields as $key => $value) {
                 $this->orderby .= ($this->orderby? ", ":"");
-                if ($value instanceof Expr) {
+                if ($value instanceof Query\Helper\Expr) {
                     $this->orderby .= $value;
                 } else {
                     if (is_numeric($key)) {
@@ -154,11 +154,11 @@ class Query
         return $result;
     }
 
-    public function fetchAll() {
+    public function fetchAll($keyfield = 'id', $valuefield = null) {
         $this->execute();
         $results = [];
         while($row = $this->fetchRow()) {
-            $results[$row->id] = $row;
+            $results[$row->$keyfield] = $valuefield===null? $row : $row->$valuefield;
         }
         return $results;
     }

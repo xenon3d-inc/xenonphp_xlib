@@ -145,6 +145,10 @@ class Model
         return new Query\Select(get_called_class(), ...$args);
     }
 
+    public static function selectForUpdate(...$args) {
+        return new Query\SelectForUpdate(get_called_class(), ...$args);
+    }
+
     public function count($columnName = null, $where = null, $distinct = null) {
         if ($columnName) {
             $column = $this->_modelData->getField($columnName);
@@ -228,6 +232,7 @@ class Model
     }
 
     public function reloadForUpdate() {
+        if (!$this->id) $this->save();
         $this->_lazyLoad = false;
         $query = (new Query\SelectForUpdate(get_called_class()))->where("id", $this->id);
         $tmp = $query->fetchRow();
@@ -279,13 +284,13 @@ class Model
         if ($this->_lazyLoad) $this->reload();
         $this->_dirty = true;
         $func = "set_" . $name;
-        $columnData = $this->_modelData->getFieldOrColumn($name);
-        if ($columnData) {
-            $fieldName = $columnData->field;
-            $columnName = $columnData->column;
-            if (method_exists($this, $func)) {
-                $this->$fieldName = $this->$func($value, $lang);
-            } else {
+        if (method_exists($this, $func)) {
+            $this->$func($value, $lang);
+        } else {
+            $columnData = $this->_modelData->getFieldOrColumn($name);
+            if ($columnData) {
+                $fieldName = $columnData->field;
+                $columnName = $columnData->column;
                 // If we are setting the column name and its different than the field name, set the raw value directly into the database
                 if ($fieldName != $columnName && $name == $columnName) {
                     $this->$columnName = $value;
@@ -300,9 +305,9 @@ class Model
                 } else {
                     trigger_error("Handler static method '$handler_func' not defined in model ".get_called_class(), E_USER_ERROR);
                 }
+            } else {
+                trigger_error("Column '$name' not found in model ".get_called_class(), E_USER_ERROR);
             }
-        } else {
-            trigger_error("Column '$name' not found in model ".get_called_class(), E_USER_ERROR);
         }
     }
 
@@ -517,7 +522,7 @@ class Model
                     ->where($column->onetomany['field'], $modelRow->{$foreignColumn->manytoone['field']});
             if ($column->filter) $query->where(new Expr($column->filter));
             if ($column->sort) $query->orderBy($column->sort);
-            $values = $modelRow->{$column->field} = $query->fetchAll();
+            $values = $modelRow->{$column->field} = $query->fetchAll($column->key, $column->value);
             $modelRow->_children = array_merge($modelRow->_children, $values);
             return $values;
         } else {

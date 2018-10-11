@@ -33,6 +33,8 @@ class Column
     protected $filter = null; // STRING // ex: `active`=true
     protected $encrypted = false; // BOOL | empty=true | unset=false
     protected $translatable = false; // BOOL | empty=true | unset=false
+    protected $key = 'id'; // STRING  the field name to use as the key for xToMany arrays
+    protected $value = null; // STRING  the field name to use as the value for xToMany arrays (null to use the entire object)
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

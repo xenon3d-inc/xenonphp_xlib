@@ -5,7 +5,8 @@ namespace Xenon\Controller;
 abstract class BaseController
 {
     public function redirect($route, $routeParams = [], $params = [], $lang = true) {
-        header("Location: ".X_url($route, $routeParams, $params, $lang));
+        if (AJAX && !PJAX) header("X-Redirect: ".X_url($route, $routeParams, $params, $lang));
+        else header("Location: ".X_url($route, $routeParams, $params, $lang));
         $this->exit();
     }
 
