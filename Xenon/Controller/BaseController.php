@@ -10,14 +10,24 @@ abstract class BaseController
         $this->exit();
     }
 
+    public function setView($view) {
+        global $X_ROUTE;
+        $X_ROUTE->setView($view);
+    }
+
     public function return404() {
-        if (!headers_sent()) http_response_code(404);
-        $this->forward('404');
+        global $X_ROUTE;
+        $X_ROUTE->return404();
+    }
+
+    public function returnCode($code) {
+        global $X_ROUTE;
+        $X_ROUTE->returnCode($code);
     }
 
     public function forward($route, $routeParams = null) {
         global $X_ROUTE;
-        cleanOutputBuffers();
+        $this->cleanOutputBuffers();
         $X_ROUTE->setRoute($route, $routeParams);
         $X_ROUTE->execute();
         exit;

@@ -10,6 +10,9 @@ class Route {
     public $route = '';
     public $params = array();
     public $routeParams = array();
+    public $method = null;
+
+    public $executed = false;
 
     public static $currentInstance = null;
     protected $url = ROUTE_URL;
@@ -19,8 +22,7 @@ class Route {
     function __construct(array $routes = array()) {
         self::$currentInstance = $this;
         $this->routes = $routes;
-        $this->view = 'index';
-        $this->viewFile = VIEW_PATH.$this->view.'.phtml';
+        $this->setView('index');
 
         if ( // Stop at the first function that returns false
             $this->prepare_url() === false ||
@@ -31,6 +33,11 @@ class Route {
             ){ // Return 404 if any function returns false
             $this->return404();
         }
+    }
+
+    public function setView($view) {
+        $this->view = $view;
+        $this->viewFile = VIEW_PATH.$this->view.'.phtml';
     }
 
     public function setRoute($route, $routeParams = null) {
@@ -82,11 +89,9 @@ class Route {
                 return false;
             }
             if ($this->route !== null) {
-                $this->view = $this->route;
-                $this->viewFile = VIEW_PATH . $this->view . '.phtml';
+                $this->setView($this->route);
                 if (!is_file($this->viewFile) && preg_match("#".preg_quote(ADMIN_URL_COMPONENT)."/#", $this->view) ) {
-                    $this->view = str_replace(ADMIN_URL_COMPONENT.'/', '', $this->view);
-                    $this->viewFile = str_replace(ADMIN_URL_COMPONENT.'/', '', $this->viewFile);
+                    $this->setView(str_replace(ADMIN_URL_COMPONENT.'/', '', $this->view));
                 }
                 break;
             }
@@ -95,6 +100,7 @@ class Route {
             }
             array_unshift($this->routeParams, array_pop($this->routeArray));
         }
+        $this->method = $_SERVER['REQUEST_METHOD'];
     }
 
     /**
@@ -222,10 +228,7 @@ class Route {
     }
 
     public function return404() {
-        if (!headers_sent()) http_response_code(404);
-        $this->route = null;
-        $this->view = '404';
-        $this->viewFile = VIEW_PATH . $this->view.'.phtml';
+        $this->returnCode(404);
     }
 
     public function getTranslatedUrl($lang) {
@@ -260,16 +263,59 @@ class Route {
         return isset($this->routeParams[$index]) ? $this->routeParams[$index] : $default;
     }
 
+    public function returnCode($code) {
+        if (!headers_sent()) http_response_code($code);
+        if ($code >= 200 && $code < 300) return; // 2xx codes are considered success. All others must output an error view.
+        $this->route = null;
+        if (is_file(VIEW_PATH.$code.'.phtml')) {
+            $this->setView($code);
+            if ($this->executed) {
+                $this->outputView();
+                exit;
+            }
+        } else if (is_file(DOCUMENT_ROOT.$code.'.php')) {
+            include DOCUMENT_ROOT.$code.'.php';
+            exit;
+        } else {
+            exit;
+        }
+    }
+
     public function execute() {
-        global $X_LAYOUT, $X_PROJECT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT;
+        global $X, $X_LAYOUT, $X_PROJECT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_VIEW_RETURN;
+
+        // Allowed Methods
+        if (!empty($this->routes[$this->route]['methods'])) {
+            if (!in_array($this->method, $this->routes[$this->route]['methods'])) {
+                $this->returnCode(400); // Bad Request
+            }
+        }
+
+        // Custom View
+        if (!empty($this->routes[$this->route]['view'])) {
+            $this->setView($this->routes[$this->route]['view']);
+        }
 
         // Route Callable Function
         if (!empty($this->routes[$this->route]['function'])) {
             call_user_func_array($this->routes[$this->route]['function'], $this->routeParams);
         }
 
+        $this->executed = true;
+
+        $this->outputView();
+    }
+
+    public function outputView() {
+        global $X, $X_LAYOUT, $X_PROJECT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_VIEW_RETURN;
+
         // Get View Content
-        $X_VIEW_CONTENT = X_include_return($this->viewFile);
+        $X_VIEW_CONTENT = X_include_return($this->viewFile, false, false, $X_VIEW_RETURN);
+
+        // Handle View Return Code
+        if (!empty($X_VIEW_RETURN) && is_numeric($X_VIEW_RETURN) && $X_VIEW_RETURN >= 100 && $X_VIEW_RETURN < 600) {
+            $this->returnCode($X_VIEW_RETURN);
+        }
 
         // Page Title
         if (!isset($X_TITLE)) $X_TITLE = $X_PROJECT . (!empty($X_PAGETITLE)?' - '.$X_PAGETITLE : '');
