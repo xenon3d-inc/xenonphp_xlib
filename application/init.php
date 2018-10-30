@@ -1,12 +1,12 @@
 <?php // XenonPHP Base Init file
 
-// Define Domains
+// Domains defined in .htaccess, can accept multiple top-level domains separated by |
 if (!defined('PROD_DOMAIN')) define('PROD_DOMAIN', $_SERVER['PROD_DOMAIN']);
 if (!defined('DEV_DOMAIN')) define('DEV_DOMAIN', $_SERVER['DEV_DOMAIN']);
 
 // Determine if PROD or DEV (both can be true, both can be false... that is an accepted behaviour because when using these we may want to exclusively check a stage)
-if (!defined('DEV')) define('DEV', preg_match("#^(www\.)?(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", $_SERVER['HTTP_HOST']));
-if (!defined('PROD')) define('PROD', preg_match("#^(www\.)?(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", $_SERVER['HTTP_HOST']));
+if (!defined('DEV')) define('DEV', preg_match("#(^|\.)(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", $_SERVER['HTTP_HOST']));
+if (!defined('PROD')) define('PROD', preg_match("#(^|\.)(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", $_SERVER['HTTP_HOST']));
 
 // Paths
 if (!defined('REAL_DOCUMENT_ROOT')) define('REAL_DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT'] . '/');
@@ -29,10 +29,14 @@ if (!defined('LANGS')) define('LANGS', $_SERVER['LANGS']);
 if (!defined('DEFAULT_LANG')) define('DEFAULT_LANG', $_SERVER['DEFAULT_LANG']);
 
 // Urls
+if (!defined('METHOD')) define('METHOD', $_SERVER['REQUEST_METHOD']);
 if (!defined('BASE_URL')) define('BASE_URL', (($_BASE_URL=dirname($_SERVER['PHP_SELF']))=='/'?'':$_BASE_URL));
 if (!defined('URL')) define('URL', $_SERVER['REQUEST_URI']);
 if (!defined('HTTPS')) define('HTTPS', ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443));
-if (!defined('HOST_URL')) define('HOST_URL', (HTTPS ? "https://" : "http://").$_SERVER['HTTP_HOST']);
+if (!defined('DOMAIN_NAME')) define('DOMAIN_NAME', $_SERVER['HTTP_HOST']);
+if (!defined('PROTOCOL')) define('PROTOCOL', HTTPS ? "https://" : "http://");
+if (!defined('PORT')) define('PORT', $_SERVER['SERVER_PORT']);
+if (!defined('HOST_URL')) define('HOST_URL', PROTOCOL.DOMAIN_NAME.(PORT!=80&&PORT!=443 ? ':'.PORT : ''));
 if (!defined('FULL_URL')) define('FULL_URL', HOST_URL.URL);
 if (!defined('ROUTE_URL')) define('ROUTE_URL', preg_replace("#^".preg_quote(BASE_URL, '#')."(.*)$#", "$1", URL));
 if (!defined('ADMIN_URL_COMPONENT')) define('ADMIN_URL_COMPONENT', 'admin');

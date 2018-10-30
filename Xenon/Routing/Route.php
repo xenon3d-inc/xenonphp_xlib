@@ -79,7 +79,7 @@ class Route {
     }
 
     protected function getRouteFromUrl() {
-        return $this->getRouteKeyFromRouteUrl(implode('/', $this->routeArray), count($this->routeParams), $this->lang);
+        return $this->getRouteKeyFromRouteUrl(implode('/', $this->routeArray), count($this->routeParams), $this->lang, DOMAIN_NAME, PORT);
     }
 
     protected function decode_route($route = true) { // $route = true means that we take the current url and decode the route from it
@@ -110,7 +110,7 @@ class Route {
      * @param string $lang Pass null to auto detect from the routeUrl, otherwise it must already be removed from routeUrl
      * @return boolean false for 404 NotFound, NULL if exact match not found, otherwise string the matched route key
      */
-    public function getRouteKeyFromRouteUrl($routeUrl, $nbParams = 0, $lang = null) {
+    public function getRouteKeyFromRouteUrl($routeUrl, $nbParams = 0, $lang = null, $domain = null, $port = null) {
         // Return true to stop here and take current route, return false to stop here and get 404, otherwise continue
         if ($lang === null && MULTILANG) {
             if (preg_match("#^/(".LANGS.")(/(.*)/?)?$#i", $routeUrl, $matches)) {
@@ -127,6 +127,17 @@ class Route {
                 }
             } else {
                 if (is_array($data)) {
+                    if ($port !== null && isset($data['port']) && !in_array($port, (array)$data['port'])) {
+                        continue;
+                    }
+                    if ($domain !== null) {
+                        if (isset($data['domain']) && !in_array($domain, (array)$data['domain'])) {
+                            continue;
+                        } else
+                        if (isset($data['subdomain']) && !preg_match("#^(".str_replace('.', "\\.", implode('|', (array)$data['subdomain'])).")\.#i", $domain)) {
+                            continue;
+                        }
+                    }
                     if (isset($data['url'])) {
                         $url = $data['url'];
                         if (is_array($data['url'])) {
@@ -192,6 +203,8 @@ class Route {
         // Handle non-existing or null route
         if ($route === null) return null;
 
+        $r = $this->routes[$route];
+
         // Route Params
         $params = $routeParams;
         // Check if the routeParams array is associative
@@ -217,14 +230,68 @@ class Route {
             }
         }
 
-        // Domain / Canonical URL
-        $domain = $canonical ? HOST_URL : "";
-
         // Base UrL
         $baseURL = defined('BASE_URL') ? BASE_URL : '';
 
+        // Domain / Canonical URL
+        $protocol = (isset($r['protocol'])? $r['protocol'] : (HTTPS?'https':'http')) . '://';
+        $domain = DOMAIN_NAME;
+        if (!empty($r['domain'])) {
+            if (is_string($r['domain'])) {
+                $domain = $r['domain'];
+            } else {
+                if (in_array(DOMAIN_NAME, (array)$r['domain'])) {
+                    $domain = $d;
+                } else
+                foreach ((array)$r['domain'] as $d) {
+                    if (DEV && preg_match("#(^|\.)(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", $d)) {
+                        $domain = $d;
+                        break;
+                    } else
+                    if (PROD && preg_match("#(^|\.)(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", $d)) {
+                        $domain = $d;
+                        break;
+                    }
+                }
+            }
+        } else
+        if (!empty($r['subdomain'])) {
+            if (preg_match("#^(".str_replace('.', "\\.", implode('|', (array)$r['subdomain'])).")\.#i", DOMAIN_NAME)) {
+                $domain = DOMAIN_NAME;
+            } else
+            foreach ((array)$r['subdomain'] as $d) {
+                if (DEV && preg_match("#^(".str_replace('.', "\\.", "$d.([a-z0-9.-].)?".str_replace("|","|$d.([a-z0-9.-].)?",DEV_DOMAIN)).")$#i", "$d.".DOMAIN_NAME, $matches)) {
+                    $domain = $matches[1];
+                    break;
+                } else
+                if (PROD && preg_match("#^(".str_replace('.', "\\.", "$d.([a-z0-9.-].)?".str_replace("|","|$d.([a-z0-9.-].)?",PROD_DOMAIN)).")$#i", "$d.".DOMAIN_NAME, $matches)) {
+                    $domain = $matches[1];
+                    break;
+                }
+            }
+            if (!preg_match("#^(".str_replace('.', "\\.", implode('|', (array)$r['subdomain'])).")\.#i", $domain)) {
+                if (DEV && preg_match("#(^|\.)(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", $domain)) {
+                    $domain = ((array)$r['subdomain'])[0].'.'.explode('|', DEV_DOMAIN)[0];
+                } else
+                if (PROD && preg_match("#(^|\.)(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", $domain)) {
+                    $domain = ((array)$r['subdomain'])[0].'.'.explode('|', PROD_DOMAIN)[0];
+                } else {
+                    $domain = ((array)$r['subdomain'])[0].'.'.$domain;
+                }
+            }
+        } else
+        if (!in_array($domain, explode('|', PROD_DOMAIN.'|'.DEV_DOMAIN))) {
+            $domain = explode('|', (DEV? DEV_DOMAIN : PROD_DOMAIN))[0];
+        }
+        $port = !empty($r['port']) ? (is_array($r['port']) ? ( in_array(PORT, $r['port'])? PORT : $r['port'][0] ) : $r['port']) : PORT;
+        if ($port == 443 && $protocol == 'http://') $protocol = 'https://';
+        $host_url = $protocol.$domain.($port!=80&&$port!=443 ? ":$port":'');
+        if (!$canonical && $host_url == HOST_URL) {
+            $host_url = "";
+        }
+
         // FINAL URL
-        return $domain.$baseURL.$this->getRouteUrlFromRouteKey($route, $lang).$params.$queryString;
+        return $host_url.$baseURL.$this->getRouteUrlFromRouteKey($route, $lang).$params.$queryString;
     }
 
     public function return404() {
@@ -281,6 +348,14 @@ class Route {
         }
     }
 
+    protected function parseRouteParamsString($str) {
+        $r = $this->routes[$this->route];
+        foreach ($this->routeParams as $key => $value) {
+            $str = str_replace("%$key%", $value, $str);
+        }
+        return $str;
+    }
+
     public function execute() {
         global $X, $X_LAYOUT, $X_PROJECT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_VIEW_RETURN;
 
@@ -293,12 +368,34 @@ class Route {
 
         // Custom View
         if (!empty($this->routes[$this->route]['view'])) {
-            $this->setView($this->routes[$this->route]['view']);
+            $this->setView($this->parseRouteParamsString($this->routes[$this->route]['view']));
+        }
+
+        // Custom Layout
+        if (isset($this->routes[$this->route]['layout'])) {
+            $X_LAYOUT = $this->parseRouteParamsString($this->routes[$this->route]['layout']);
         }
 
         // Route Callable Function
         if (!empty($this->routes[$this->route]['function'])) {
             call_user_func_array($this->routes[$this->route]['function'], $this->routeParams);
+        }
+
+        // Title
+        if (!isset($X_PAGETITLE) && !empty($this->routes[$this->route]['pagetitle'])) {
+            $X_PAGETITLE = $this->routes[$this->route]['pagetitle'];
+            if (is_array($X_PAGETITLE)) $X_PAGETITLE = isset($X_PAGETITLE[LANG])? $X_PAGETITLE[LANG] : $X_PAGETITLE[DEFAULT_LANG];
+            $X_PAGETITLE = $this->parseRouteParamsString($X_PAGETITLE);
+        }
+        if (!isset($X_TITLE) && !empty($this->routes[$this->route]['title'])) {
+            $X_TITLE = $this->routes[$this->route]['title'];
+            if (is_array($X_TITLE)) $X_TITLE = isset($X_TITLE[LANG])? $X_TITLE[LANG] : $X_TITLE[DEFAULT_LANG];
+            $X_TITLE = $this->parseRouteParamsString($X_TITLE);
+        }
+
+        // Validate View File exists
+        if (!is_file($this->viewFile)) {
+            $this->return404();
         }
 
         $this->executed = true;
@@ -318,7 +415,10 @@ class Route {
         }
 
         // Page Title
-        if (!isset($X_TITLE)) $X_TITLE = $X_PROJECT . (!empty($X_PAGETITLE)?' - '.$X_PAGETITLE : '');
+        if (!isset($X_TITLE)) {
+            if (!empty($X_PROJECT))
+            $X_TITLE = $X_PROJECT . (!empty($X_PAGETITLE)?' - '.$X_PAGETITLE : '');
+        }
 
         // Page Layout
         if (!empty($X_LAYOUT)) {
