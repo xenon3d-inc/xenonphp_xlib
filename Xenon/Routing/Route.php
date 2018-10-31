@@ -79,7 +79,7 @@ class Route {
     }
 
     protected function getRouteFromUrl() {
-        return $this->getRouteKeyFromRouteUrl(implode('/', $this->routeArray), count($this->routeParams), $this->lang, DOMAIN_NAME, PORT);
+        return $this->getRouteKeyFromRouteUrl(implode('/', $this->routeArray), $this->routeParams, $this->lang, DOMAIN_NAME, PORT);
     }
 
     protected function decode_route($route = true) { // $route = true means that we take the current url and decode the route from it
@@ -100,17 +100,24 @@ class Route {
             }
             array_unshift($this->routeParams, array_pop($this->routeArray));
         }
-        $this->method = $_SERVER['REQUEST_METHOD'];
+        $this->method = METHOD;
+        // Add string keys to route params
+        if (!empty($this->routeParams) && is_array($this->routeParams) && is_array($this->routes[$this->route]['params'])) {
+            foreach ($this->routeParams as $index => $val) {
+                $key = $this->routes[$this->route]['params'][$index];
+                if (is_string($key)) $this->routeParams[explode(':',$key)[0]] = $val;
+            }
+        }
     }
 
     /**
      *
      * @param string $routeUrl
-     * @param int $nbParams
+     * @param int|array $routeParams can be the number of params or the actual route params [key=>val]
      * @param string $lang Pass null to auto detect from the routeUrl, otherwise it must already be removed from routeUrl
      * @return boolean false for 404 NotFound, NULL if exact match not found, otherwise string the matched route key
      */
-    public function getRouteKeyFromRouteUrl($routeUrl, $nbParams = 0, $lang = null, $domain = null, $port = null) {
+    public function getRouteKeyFromRouteUrl($routeUrl, $routeParams = 0, $lang = null, $domain = null, $port = null) {
         // Return true to stop here and take current route, return false to stop here and get 404, otherwise continue
         if ($lang === null && MULTILANG) {
             if (preg_match("#^/(".LANGS.")(/(.*)/?)?$#i", $routeUrl, $matches)) {
@@ -146,8 +153,26 @@ class Route {
                         if ($url === $routeUrl) {
                             // URL MATCHES
                             if (isset($data['params'])) {
-                                if (is_array($data['params']) && count($data['params']) != $nbParams) continue;
-                                if (is_numeric($data['params']) && $data['params'] != $nbParams) continue;
+                                if (is_numeric($routeParams)) {
+                                    if (is_array($data['params']) && count($data['params']) != $routeParams) continue;
+                                    else if (is_numeric($data['params']) && $data['params'] != $routeParams) continue;
+                                } else
+                                if (is_array($routeParams)) {
+                                    if (is_numeric($data['params']) && count($routeParams) != $data['params']) continue;
+                                    else if (is_array($data['params'])) {
+                                        if (count($routeParams) != count($data['params'])) continue;
+                                        foreach ($data['params'] as $i=>$param) {
+                                            if (($pos=strpos($param, ':')) > 0) { // strpos() > 0 this is NOT a mistake. In this case we want to also ignore if the char is at the first position
+                                                $k = substr($param, 0, $pos);
+                                                $regex = substr($param, $pos+1);
+                                                if (isset($routeParams[$i])) {
+                                                    // Do not use this route if one of the parameter keys contains a regex and that it does not match the given parameter value
+                                                    if (!preg_match("#^($regex)$#i", $routeParams[$i])) continue 2;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             return $key;
                         }
@@ -319,14 +344,14 @@ class Route {
     }
 
     public function getRouteParam($index = 0, $default = null) {
-        if (!is_numeric($index) && !empty($this->routes[$this->route]['params']) && is_array($this->routes[$this->route]['params'])) {
-            foreach ($this->routes[$this->route]['params'] as $i => $val) {
-                if ($val == $index) {
-                    $index = $i;
-                    break;
-                }
-            }
-        }
+        // if (!is_numeric($index) && !empty($this->routes[$this->route]['params']) && is_array($this->routes[$this->route]['params'])) {
+        //     foreach ($this->routes[$this->route]['params'] as $i => $val) {
+        //         if ($val == $index) {
+        //             $index = $i;
+        //             break;
+        //         }
+        //     }
+        // }
         return isset($this->routeParams[$index]) ? $this->routeParams[$index] : $default;
     }
 
@@ -364,6 +389,11 @@ class Route {
             if (!in_array($this->method, $this->routes[$this->route]['methods'])) {
                 $this->returnCode(400); // Bad Request
             }
+        }
+
+        // Handle request data for uncommon methods
+        if (in_array(METHOD, ['PATCH', 'PUT', 'DELETE', 'HEAD']) && !empty($_SERVER["CONTENT_TYPE"]) && stripos($_SERVER["CONTENT_TYPE"], "urlencoded")) {
+            parse_str(file_get_contents('php://input'), $_REQUEST);
         }
 
         // Custom View
