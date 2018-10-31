@@ -46,4 +46,9 @@ abstract class BaseController
         exit;
     }
 
+    public function param($index = 0) {
+        global $X_ROUTE;
+        return $X_ROUTE->getRouteParam($index);
+    }
+
 }
