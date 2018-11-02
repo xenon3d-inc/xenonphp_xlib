@@ -228,8 +228,6 @@ class Route {
         // Handle non-existing or null route
         if ($route === null) return null;
 
-        $r = $this->routes[$route];
-
         // Route Params
         $params = $routeParams;
         // Check if the routeParams array is associative
@@ -257,6 +255,9 @@ class Route {
 
         // Base UrL
         $baseURL = defined('BASE_URL') ? BASE_URL : '';
+
+        $r = isset($this->routes[$route])? $this->routes[$route] : [];
+        $specialRoute = isset($r['domain']) || isset($r['subdomain']) || isset($r['port']) || isset($r['protocol']);
 
         // Domain / Canonical URL
         $protocol = (isset($r['protocol'])? $r['protocol'] : (HTTPS?'https':'http')) . '://';
@@ -311,7 +312,7 @@ class Route {
         $port = !empty($r['port']) ? (is_array($r['port']) ? ( in_array(PORT, $r['port'])? PORT : $r['port'][0] ) : $r['port']) : PORT;
         if ($port == 443 && $protocol == 'http://') $protocol = 'https://';
         $host_url = $protocol.$domain.($port!=80&&$port!=443 ? ":$port":'');
-        if (!$canonical && $host_url == HOST_URL) {
+        if (!$canonical && ($host_url == HOST_URL || !$specialRoute)) {
             $host_url = "";
         }
 
