@@ -9,6 +9,7 @@ class SimpleDatabaseConnection
     protected static $instances = [];
 
     public static $queries = [];
+    public static $queriesParams = [];
 
     public function __construct() {
         self::$instances[] = $this;
@@ -37,6 +38,7 @@ class SimpleDatabaseConnection
      */
     public function query($sql, array $params = []){
         self::$queries[] = $sql;
+        self::$queriesParams[] = $params;
         return new Query($this->db, $sql, $params);
     }
 
@@ -44,12 +46,19 @@ class SimpleDatabaseConnection
         return count(self::$instances) > 0 ? self::$instances[0] : null;
     }
 
+    public static function dumpLastQuery() {
+        if (!count(self::$queries)) echo "[NO QUERIES YET]";
+        echo self::$queries[count(self::$queries) - 1];
+        echo "\n<br> Params: ";
+        var_dump(self::$queriesParams[count(self::$queriesParams) - 1]);
+    }
+
     public static function debugQueries(){
         die("\n<br>\n".implode("\n<br>\n", self::$queries)."\n<br>\n");
     }
 
     public static function debugLastQuery(){
-        die(count(self::$queries) ? self::$queries[count(self::$queries) - 1] : "[NO QUERIES]");
+        die(count(self::$queries) ? self::$queries[count(self::$queries) - 1] : "[NO QUERIES YET]");
     }
 
 }
