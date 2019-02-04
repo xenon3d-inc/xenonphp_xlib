@@ -102,7 +102,7 @@ class Route {
         }
         $this->method = METHOD;
         // Add string keys to route params
-        if (!empty($this->routeParams) && is_array($this->routeParams) && is_array($this->routes[$this->route]['params'])) {
+        if (!empty($this->routeParams) && is_array($this->routeParams) && !empty($this->routes[$this->route]) && is_array($this->routes[$this->route]['params'])) {
             foreach ($this->routeParams as $index => $val) {
                 $key = $this->routes[$this->route]['params'][$index];
                 if (is_string($key)) $this->routeParams[explode(':',$key)[0]] = $val;
