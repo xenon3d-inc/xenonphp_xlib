@@ -7,55 +7,55 @@ class StaticCKEditor {
     protected static $model = null;
     protected static $keyField = null;
     protected static $contentField = null;
-    
+
     public static $enable_editing = false;
-    
+
     protected $editorWidth;
     public static $default_editorWidth = 'auto';
-    
+
     protected $editorHeight;
     public static $default_editorHeight = 400;
-    
+
     protected $imageProcessorParams = "";
     public static $default_imageProcessorParams = "";
-    
+
     protected static $CKEditorLoaded = false;
-    
+
     public function __construct($name) {
         if (!preg_match("#^\w+$#", $name)) {
             throw new Exception("StaticCKEditor Name can only contain letters, numbers and _");
         }
-        
+
         $this->name = $name;
         $this->filepath = self::getContentFilePathFromName($this->name);
-        
+
         // Default configs
         $this->editorWidth = self::$default_editorWidth;
         $this->editorHeight = self::$default_editorHeight;
         $this->imageProcessorParams = self::$default_imageProcessorParams;
     }
-    
+
     public static function setDbContent($model, $keyField, $contentField) {
         self::$model = $model;
         self::$keyField = $keyField;
         self::$contentField = $contentField;
     }
-    
+
     public function setEditorWidth($width) {
         $this->editorWidth = $width;
         return $this;
     }
-    
+
     public function setEditorHeight($height) {
         $this->editorHeight = $height;
         return $this;
     }
-    
+
     public function setImageProcessorParams($params) {
         $this->imageProcessorParams = $params;
         return $this;
     }
-    
+
     public function savePostContent($editCondition = true) {
         if ($editCondition && self::$enable_editing && isset($_POST['content_StaticCKEditor_'.$this->name])) {
             $value = $_POST['content_StaticCKEditor_'.$this->name];
@@ -80,7 +80,7 @@ class StaticCKEditor {
         }
         return $this;
     }
-    
+
     public static function beginForm() {
         ?>
         <div class="staticCKEditor_form_container">
@@ -91,7 +91,7 @@ class StaticCKEditor {
                 </div>
         <?php
     }
-    
+
     public function showEditor($showForm = false) {
         if ($showForm) self::beginForm();
         $this->preloadCKEditor();
@@ -130,7 +130,7 @@ class StaticCKEditor {
         if ($showForm) self::endForm();
         return $this;
     }
-    
+
     public static function endForm() {
         ?>
                 <div class="staticCKEditor_submit">
@@ -141,8 +141,8 @@ class StaticCKEditor {
         </div>
         <?php
     }
-    
-    
+
+
     public static function uploadImage() {
         global $X_LAYOUT;
         if (isset($_GET['uploadImage'])) {
@@ -167,7 +167,7 @@ class StaticCKEditor {
             exit;
         }
     }
-    
+
     public static function browseImage() {
         global $X_LAYOUT;
         if (isset($_GET['browseImage'])) {
@@ -206,11 +206,11 @@ class StaticCKEditor {
             exit;
         }
     }
-    
+
     public function preloadCKEditor() {
         if (!self::$CKEditorLoaded) {
             ?>
-            <script src="//cdn.ckeditor.com/4.5.7/standard/ckeditor.js"></script>
+            <script src="//cdn.ckeditor.com/4.5.7/full/ckeditor.js"></script>
             <script>
                 function staticCKEditor_inline_edit_function(elem, event) {
                     if (event !== undefined) {
@@ -225,19 +225,19 @@ class StaticCKEditor {
                             height: '<?=$this->editorHeight?>',
                             language: '<?=(LANG=='fr'?'fr-ca':LANG)?>',
                             toolbarGroups: [
-                                { name: 'document',	   groups: [ 'mode', 'document', 'doctools' ] },
-                                { name: 'clipboard',   groups: [ 'clipboard', 'undo' ] },
-                                { name: 'editing',     groups: [ 'find', 'selection', 'spellchecker' ] },
-                                { name: 'forms' },
+                                // { name: 'document',	   groups: [ 'mode', 'document', 'doctools' ] },
+                                // { name: 'clipboard',   groups: [ 'clipboard', 'undo' ] },
+                                // { name: 'editing',     groups: [ 'find', 'selection', 'spellchecker' ] },
+                                // { name: 'forms' },
                                 { name: 'basicstyles', groups: [ 'basicstyles', 'cleanup' ] },
-                                { name: 'paragraph',   groups: [ 'list', 'indent', 'blocks', 'align', 'bidi' ] },
+                                // { name: 'paragraph',   groups: [ 'list', 'align' ] },
                                 { name: 'links' },
-                                { name: 'insert' },
-                                { name: 'styles' },
+                                // { name: 'insert' },
+                                // { name: 'styles' },
                                 { name: 'colors' },
-                                { name: 'tools' },
-                                { name: 'others' },
-                                { name: 'about' }
+                                // { name: 'tools' },
+                                // { name: 'others' },
+                                // { name: 'about' }
                             ],
                             filebrowserImageUploadUrl: '?uploadImage=<?=urlencode($this->imageProcessorParams)?>',
                             filebrowserImageBrowseUrl: '?browseImage=<?=urlencode($this->imageProcessorParams)?>'
@@ -253,8 +253,8 @@ class StaticCKEditor {
                         };
                         data['content_StaticCKEditor_'+$(elem).attr('data-name')] = CKEDITOR.instances[elem.id].getData();
                         $.ajax({
-                            url: '', 
-                            type: 'post', 
+                            url: '',
+                            type: 'post',
                             async: async,
                             data: data,
                             success: function() {
@@ -269,11 +269,11 @@ class StaticCKEditor {
                      }
                 };
             </script>
-            <?php 
+            <?php
             self::$CKEditorLoaded = true;
         }
     }
-    
+
     public function GetInlineEdit($editCondition = true) {
         $this->savePostContent($editCondition);
         $value = self::getContent($this->name);
@@ -291,7 +291,7 @@ class StaticCKEditor {
             echo $value;
         }
     }
-    
+
     public static function getContent($name) {
         if (self::$model) {
             $content = (new \Xenon\Db\Query\Select(self::$model))->where(self::$keyField, $name)->fetchRow();
@@ -303,7 +303,7 @@ class StaticCKEditor {
             }
         }
     }
-    
+
     protected static function getContentFilePathFromName($name) {
         return DATA_PATH . $name . '.staticCKEditor.content.html';
     }
