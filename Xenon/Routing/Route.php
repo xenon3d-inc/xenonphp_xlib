@@ -412,15 +412,25 @@ class Route {
             call_user_func_array($this->routes[$this->route]['function'], $this->routeParams);
         }
 
+        // Lang
+        if (!defined('LANG')) {
+            if (isset($this->routes[$this->route]['lang'])) $this->lang = $this->routes[$this->route]['lang'];
+            if ((!is_string($this->lang) || !preg_match("#^(".LANGS.")$#i", $this->lang)) && is_callable($this->lang)) {
+                $langFunc = $this->lang;
+                $this->lang = $langFunc();
+            }
+            if (is_string($this->lang) && strlen($this->lang) && preg_match("#^(".LANGS.")$#i", $this->lang)) define('LANG', $this->lang);
+        }
+
         // Title
         if (!isset($X_PAGETITLE) && !empty($this->routes[$this->route]['pagetitle'])) {
             $X_PAGETITLE = $this->routes[$this->route]['pagetitle'];
-            if (is_array($X_PAGETITLE)) $X_PAGETITLE = isset($X_PAGETITLE[LANG])? $X_PAGETITLE[LANG] : $X_PAGETITLE[DEFAULT_LANG];
+            if (is_array($X_PAGETITLE) && defined('LANG')) $X_PAGETITLE = isset($X_PAGETITLE[LANG])? $X_PAGETITLE[LANG] : $X_PAGETITLE[DEFAULT_LANG];
             $X_PAGETITLE = $this->parseRouteParamsString($X_PAGETITLE);
         }
         if (!isset($X_TITLE) && !empty($this->routes[$this->route]['title'])) {
             $X_TITLE = $this->routes[$this->route]['title'];
-            if (is_array($X_TITLE)) $X_TITLE = isset($X_TITLE[LANG])? $X_TITLE[LANG] : $X_TITLE[DEFAULT_LANG];
+            if (is_array($X_TITLE) && defined('LANG')) $X_TITLE = isset($X_TITLE[LANG])? $X_TITLE[LANG] : $X_TITLE[DEFAULT_LANG];
             $X_TITLE = $this->parseRouteParamsString($X_TITLE);
         }
 
