@@ -1,3 +1,7 @@
+0.5.1 - 2019-02-06
+    Improved Routing system (bugfix and custom lang feature)
+    Very small and optional edit to init.php template
+
 0.5.0 - 2018-10-23
     Added FPDF External library
     Added config-file texts for i18n
