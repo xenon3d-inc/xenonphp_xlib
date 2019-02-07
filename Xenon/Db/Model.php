@@ -251,7 +251,7 @@ class Model
         return $this->set($name, $value);
     }
 
-    public function get($name, $lang = LANG) {
+    public function get($name, $lang = null) {
         if ($this->_lazyLoad) $this->reload();
         $func = "get_" . $name;
         if (method_exists($this, $func)) {
@@ -280,7 +280,7 @@ class Model
         }
     }
 
-    public function set($name, $value, $lang = LANG) {
+    public function set($name, $value, $lang = null) {
         if ($this->_lazyLoad) $this->reload();
         $this->_dirty = true;
         $func = "set_" . $name;
@@ -323,7 +323,11 @@ class Model
     }
 
     // @translatable
-    public static function getTranslatable($dbValue, $lang = LANG) {
+    public static function getTranslatable($dbValue, $lang = null) {
+        if ($lang === null) {
+            if (defined('LANG')) $lang = LANG;
+            else $lang = DEFAULT_LANG;
+        }
         if (is_string($dbValue)) {
             if ($dbValue === "") return "";
             try {
@@ -342,7 +346,7 @@ class Model
         if (count($dbValue) == 0) return "";
         return reset($dbValue);
     }
-    public static function setTranslatable($dbValue, $newValue, $lang = LANG) {
+    public static function setTranslatable($dbValue, $newValue, $lang = null) {
         if (!is_array($dbValue)) {
             if (gettype($dbValue) == "NULL") {
                 $dbValue = [];
