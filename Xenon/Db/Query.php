@@ -70,6 +70,10 @@ class Query
         return $this;
     }
 
+    public function expr($expression, ...$args) {
+        return new Query\Helper\Expr($expression, $this->model, ...$args);
+    }
+
     public function offset($offset) {
         if (is_numeric($offset)) {
             $this->offset = $offset;
