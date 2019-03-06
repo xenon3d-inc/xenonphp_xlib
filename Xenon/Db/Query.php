@@ -167,6 +167,15 @@ class Query
         return $results;
     }
 
+    public function fetchArray($valuefield = null) {
+        $this->execute();
+        $results = [];
+        while($row = $this->fetchRow()) {
+            $results[] = $valuefield===null? $row : $row->$valuefield;
+        }
+        return $results;
+    }
+
     public function reset() {
         if ($this->resultset) mysqli_free_result($this->resultset);
         $this->resultset = null;
