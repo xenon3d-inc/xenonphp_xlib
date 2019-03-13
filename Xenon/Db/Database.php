@@ -50,6 +50,7 @@ class Database
     }
 
     public static function getInstanceForModel($model) {
+        if (!$model && count(self::$instances)) return self::$instances[0];
         if (!array_key_exists($model, self::$instancePerModel)) {
             trigger_error("Model '$model' not initialized", E_USER_ERROR);
             return;

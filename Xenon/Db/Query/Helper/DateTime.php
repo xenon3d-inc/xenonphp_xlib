@@ -23,7 +23,7 @@ class DateTime {
     }
 
     public function format($format = "Y-m-d H:i:s") {
-        return date($format, $this->timestamp);
+        return $this->isnull ? '0000-00-00 00:00:00' : date($format, $this->timestamp);
     }
 
     public function __toString() {

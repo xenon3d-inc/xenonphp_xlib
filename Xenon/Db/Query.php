@@ -131,6 +131,16 @@ class Query
         return $this;
     }
 
+    public function fetch($field = 0) {
+        if (!$this->resultset) {
+            $this->execute();
+        }
+        if (($result = mysqli_fetch_array($this->resultset))) {
+            return $result[$field];
+        }
+        return 0;
+    }
+
     public function fetchCount($field = 'COUNT') {
         if (!$this->resultset) {
             $this->execute();
