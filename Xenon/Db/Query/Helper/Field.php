@@ -70,8 +70,15 @@ class Field {
         }
 
         // Field name
-        if ($this->modelData) $field = $this->modelData->getFieldOrColumn($field);
-        $this->field = Database::getInstanceForModel($this->model)->db->real_escape_string($field);
+        if ($this->modelData) {
+            $f = $this->modelData->getFieldOrColumn($field);
+            if (!$f) {
+                trigger_error("Error in order close : Field $field does not exist in model ".$this->model, E_USER_ERROR);
+                return;
+            }
+            $field = $f;
+        }
+        $this->field = $this->model? Database::getInstanceForModel($this->model)->db->real_escape_string($field) : $field;
         $this->expression = "`".$this->table."`.`".$this->field."`".$as;
     }
 

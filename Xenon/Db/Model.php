@@ -27,6 +27,7 @@ class Model
     public function __construct(array $values = [], $rawData = false) {
         $this->_isnew = true;
         $this->_modelData = Schema\ModelData::get(get_called_class());
+        $this->_original_values = $values;
         if ($rawData) {
             foreach ($values as $key => $value) {
                 if (strpos($key, '.') === false) {
@@ -36,8 +37,6 @@ class Model
                         $columnName = $columnData->column;
                         $this->$fieldName = $value;
                         if ($fieldName != $columnName) $this->$columnName = $value;
-                    } else {
-                        //TODO implement a way to see additional fields not present in the model
                     }
                 } else {
                     //TODO implement xToOne Automatic JOIN
@@ -274,6 +273,8 @@ class Model
                 } else {
                     trigger_error("Handler static method '$handler_func' not defined in model ".get_called_class(), E_USER_ERROR);
                 }
+            } else if (isset($this->_original_values[$name])) {
+                return $this->_original_values[$name];
             } else {
                 trigger_error("Column '$name' not found in model ".get_called_class(), E_USER_ERROR);
             }

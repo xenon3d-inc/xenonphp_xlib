@@ -41,7 +41,9 @@ class Query
     public function orderBy($fields) {
         if (!empty($fields)) {
             if (!is_array($fields)) {
-                if (preg_match("#^\s*(\w+)\s+((a|de)sc)?\s*$#i", $fields, $matches)) {
+                if ($fields instanceof Query\Helper\Expr) {
+                    $fields = [$fields];
+                } else if (preg_match("#^\s*(\w+)\s+((a|de)sc)?\s*$#i", $fields, $matches)) {
                     $fields = [$matches[1] => strtoupper(!empty($matches[2])?$matches[2]:'ASC')];
                 } else {
                     $fields = [new Query\Helper\Expr($fields)];

@@ -15,7 +15,7 @@ class Select extends \Xenon\Db\Query
         $this->addFields($fields);
     }
     
-    protected function addFields($fields) {
+    public function addFields($fields) {
         if (!is_array($fields)) {
             $fields = [$fields];
         }
