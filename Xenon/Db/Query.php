@@ -63,6 +63,10 @@ class Query
                         trigger_error("Error: Field values need to be either ASC or DESC in orderBy clause", E_USER_ERROR);
                         return;
                     }
+                    if (preg_match("#^([a-z_][a-z0-9_]*)\s+((A|DE)SC)$#i", $key, $matches)) {
+                        $key = $matches[1];
+                        $value = $matches[2];
+                    }
                     $this->orderby .= (new Query\Helper\Field($this->model, $key)) . " " . strtoupper($value);
                 }
             }
