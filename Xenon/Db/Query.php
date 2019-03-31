@@ -13,10 +13,6 @@ class Query
     public $table = "";
 
     protected $query;
-    protected $where = null;
-    protected $orderby = "";
-    protected $limit = "";
-    protected $offset = "";
 
     protected $resultset = null;
     protected $resultindex = 0;
@@ -38,85 +34,8 @@ class Query
         return $this->query;
     }
 
-    public function orderBy($fields) {
-        if (!empty($fields)) {
-            if (!is_array($fields)) {
-                if ($fields instanceof Query\Helper\Expr) {
-                    $fields = [$fields];
-                } else if (preg_match("#^\s*(\w+)\s+((a|de)sc)?\s*$#i", $fields, $matches)) {
-                    $fields = [$matches[1] => strtoupper(!empty($matches[2])?$matches[2]:'ASC')];
-                } else {
-                    $fields = [new Query\Helper\Expr($fields)];
-                }
-            }
-            $this->orderby = "";
-            foreach ($fields as $key => $value) {
-                $this->orderby .= ($this->orderby? ", ":"");
-                if ($value instanceof Query\Helper\Expr) {
-                    $this->orderby .= $value;
-                } else {
-                    if (is_numeric($key)) {
-                        $key = $value;
-                        $value = "ASC";
-                    }
-                    if (!preg_match("#^(A|DE)SC$#i", $value)) {
-                        trigger_error("Error: Field values need to be either ASC or DESC in orderBy clause", E_USER_ERROR);
-                        return;
-                    }
-                    if (preg_match("#^([a-z_][a-z0-9_]*)\s+((A|DE)SC)$#i", $key, $matches)) {
-                        $key = $matches[1];
-                        $value = $matches[2];
-                    }
-                    $this->orderby .= (new Query\Helper\Field($this->model, $key)) . " " . strtoupper($value);
-                }
-            }
-        } else {
-            trigger_error("Error: Fields param cannot be empty in orderBy clause", E_USER_ERROR);
-        }
-        return $this;
-    }
-
     public function expr($expression, ...$args) {
         return new Query\Helper\Expr($expression, $this->model, ...$args);
-    }
-
-    public function offset($offset) {
-        if (is_numeric($offset)) {
-            $this->offset = $offset;
-        } else {
-            trigger_error("Error: Param need to be integer for offset sql clause", E_USER_ERROR);
-        }
-        return $this;
-    }
-
-    public function limit($limit, $arg2 = null) {
-        if ($arg2) {
-            return $this->limit($arg2)->offset($limit);
-        }
-        if (is_numeric($limit)) {
-            $this->limit = $limit;
-        } else {
-            trigger_error("Error: Param need to be integer for limit sql clause", E_USER_ERROR);
-        }
-        return $this;
-    }
-
-    public function where(...$args) {
-        if ($this->where) $this->where->where($this->model, ...$args);
-        else $this->where = new Where($this->model, ...$args);
-        return $this;
-    }
-
-    public function andWhere(...$args) {
-        if ($this->where) $this->where->andWhere($this->model, ...$args);
-        else $this->where = new Where($this->model, ...$args);
-        return $this;
-    }
-
-    public function orWhere(...$args) {
-        if ($this->where) $this->where->orWhere($this->model, ...$args);
-        else $this->where = new Where($this->model, ...$args);
-        return $this;
     }
 
     public function execute(Database $database = null) {
@@ -198,4 +117,39 @@ class Query
         $this->resultindex = 0;
         return $this;
     }
+
+
+    // Raw methods from mysqli
+    public function fetch_assoc() {
+        if (!$this->resultset) {
+            $this->execute();
+        }
+        $result = mysqli_fetch_assoc($this->resultset);
+        $this->resultindex++;
+        if (!$result) {
+            $this->reset();
+            return null;
+        }
+        return $result;
+    }
+    public function fetch_array(...$args) {
+        if (!$this->resultset) {
+            $this->execute();
+        }
+        $result = mysqli_fetch_array($this->resultset, ...$args);
+        $this->resultindex++;
+        if (!$result) {
+            $this->reset();
+            return null;
+        }
+        return $result;
+    }
+    public function fetch_all(...$args) {
+        $this->execute();
+        $results = mysqli_fetch_all($this->resultset, ...$args);
+        $this->reset();
+        return $results;
+    }
+
+
 }

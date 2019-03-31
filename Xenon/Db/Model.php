@@ -44,22 +44,32 @@ class Model
             }
         } else {
             foreach ($this->_modelData->getFields() as $fieldName => $columnData) {
-                if ($columnData->type == 'timestamp' && $columnData->default == 'current_timestamp') {
-                    $this->$fieldName = (new Query\Helper\DateTime)->format();
+                $columnName = $columnData->column;
+                $value = $columnData->id && $columnData->null ? NULL : $columnData->default;
+                if (isset($values[$fieldName])) {
+                    $value = $values[$fieldName];
+                    unset($values[$fieldName]);
+                } else if ($fieldName != $columnName && isset($values[$columnName])) {
+                    $value = $values[$columnName];
+                    unset($values[$columnName]);
                 } else {
-                    $columnName = $columnData->column;
-                    $value = $columnData->id && $columnData->null ? NULL : $columnData->default;
-                    if (isset($values[$fieldName])) {
-                        $value = $values[$fieldName];
-                        unset($values[$fieldName]);
-                    } else if ($fieldName != $columnName && isset($values[$columnName])) {
-                        $value = $values[$columnName];
-                        unset($values[$columnName]);
+                    // Value for this field is not passed in
+
+                    // If NOTNULL, ignore it and let MySQL set its default value or NULL when inserted
+                    if (!$columnData->null) {
+                        if ($value === NULL && !$columnData->id) {
+                            trigger_error("Value for field '$columnName' with no default cannot be NULL", E_USER_ERROR);
+                        }
+                        continue;
                     }
-                    $this->set($fieldName, $value);
-                    if ($fieldName != $columnName) {
-                        $this->set($columnName, $value);
+                    // Do not set default values that are not numeric, leave them NULL or Automatic
+                    if (!is_numeric($value)) {
+                        continue;
                     }
+                }
+                $this->set($fieldName, $value);
+                if ($fieldName != $columnName) {
+                    $this->set($columnName, $value);
                 }
             }
             foreach ($values as $key => $value) {
@@ -146,6 +156,10 @@ class Model
 
     public static function selectForUpdate(...$args) {
         return new Query\SelectForUpdate(get_called_class(), ...$args);
+    }
+
+    public static function query($queryExpr, ...$args) {
+        return new Query(new Query\Helper\Expr($queryExpr, get_called_class(), ...$args));
     }
 
     public function count($columnName = null, $where = null, $distinct = null) {

@@ -1,3 +1,6 @@
+0.5.2 - 2019-03-31
+    Improved MySQL wrapper
+
 0.5.1 - 2019-02-06
     Improved Routing system (bugfix and custom lang feature)
     Very small and optional edit to init.php template

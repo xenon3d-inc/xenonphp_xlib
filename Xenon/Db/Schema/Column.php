@@ -164,33 +164,35 @@ class Column
             return;
         }
         // Date
-        if (preg_match("#^(timestamp)$#i", $value)) {
+        if (preg_match("#^(timestamp)(\((\d)\))?$#i", $value, $matches)) {
             $this->type = 'timestamp';
-            $this->length = null;
+            $this->length = !empty($matches[3])? $matches[3] : null;
             $this->handler = 'date';
             return;
         }
-        if (preg_match("#^(timestamp ?\(?(auto|create_update)\)?|auto_timestamp)$#i", $value)) {
+        if (preg_match("#^(auto_timestamp|create_update_timestamp|update_create_timestamp)(\((\d)\))?$#i", $value, $matches)) {
             $this->type = 'timestamp';
-            $this->length = null;
-            $this->default = 'current_timestamp';
-            $this->onupdate = 'current_timestamp';
+            $this->length = !empty($matches[3])? $matches[3] : null;
+            $this->default = 'current_timestamp' . ((!empty($matches[3]))? ('('.$matches[3].')') : '');
+            $this->onupdate = 'current_timestamp' . ((!empty($matches[3]))? ('('.$matches[3].')') : '');
+            $this->null = false;
             $this->handler = 'date';
             return;
         }
-        if (preg_match("#^(timestamp ?\(?(create|current_timestamp)\)?|current_timestamp|create_timestamp)$#i", $value)) {
+        if (preg_match("#^(current_timestamp|create_timestamp)(\((\d)\))?$#i", $value, $matches)) {
             $this->type = 'timestamp';
-            $this->length = null;
-            $this->default = 'current_timestamp';
+            $this->length = !empty($matches[3])? $matches[3] : null;
+            $this->default = 'current_timestamp' . ((!empty($matches[3]))? ('('.$matches[3].')') : '');
+            $this->null = false;
             $this->handler = 'date';
             return;
         }
-        if (preg_match("#^(timestamp ?\(?(update|update_timestamp)\)?|update_timestamp)$#i", $value)) {
+        if (preg_match("#^(update_timestamp|modified_timestamp)(\((\d)\))?$#i", $value, $matches)) {
             $this->type = 'timestamp';
-            $this->length = null;
+            $this->length = !empty($matches[3])? $matches[3] : null;
             $this->default = null;
             $this->null = true;
-            $this->onupdate = 'current_timestamp';
+            $this->onupdate = 'current_timestamp' . ((!empty($matches[3]))? ('('.$matches[3].')') : '');
             $this->handler = 'date';
             return;
         }
