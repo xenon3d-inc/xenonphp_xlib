@@ -60,11 +60,11 @@ class Model
                         if ($value === NULL && !$columnData->id) {
                             trigger_error("Value for field '$columnName' with no default cannot be NULL", E_USER_ERROR);
                         }
-                        $value = NULL;
+                        continue;
                     }
                     // Do not set default values that are not numeric, leave them NULL or Automatic
                     if (!is_numeric($value)) {
-                        $value = NULL;
+                        continue;
                     }
                 }
                 $this->set($fieldName, $value);
@@ -276,7 +276,16 @@ class Model
                 $columnName = $columnData->column;
                 // If we are getting the column name and its different than the field name, return the raw unparsed value directly from the database
                 if ($fieldName != $columnName && $name == $columnName) {
-                    return $this->$columnName;
+                    if (isset($this->_original_values[$columnName])) {
+                        return $this->_original_values[$columnName];
+                    } else if (isset($this->_original_values[$fieldName])) {
+                        return $this->_original_values[$fieldName];
+                    } else if (isset($this->$columnName)) {
+                        return $this->$columnName;
+                    } else if (isset($this->$fieldName)) {
+                        return $this->$fieldName;
+                    }
+                    return null;
                 }
                 $handler_func = "handler_get_".$columnData->handler;
                 if (method_exists($this, $handler_func)) {
