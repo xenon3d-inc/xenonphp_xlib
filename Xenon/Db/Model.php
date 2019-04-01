@@ -60,11 +60,11 @@ class Model
                         if ($value === NULL && !$columnData->id) {
                             trigger_error("Value for field '$columnName' with no default cannot be NULL", E_USER_ERROR);
                         }
-                        continue;
+                        $value = NULL;
                     }
                     // Do not set default values that are not numeric, leave them NULL or Automatic
                     if (!is_numeric($value)) {
-                        continue;
+                        $value = NULL;
                     }
                 }
                 $this->set($fieldName, $value);
