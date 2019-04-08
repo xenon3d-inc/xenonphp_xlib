@@ -65,7 +65,7 @@ class InlineTableEdit {
                                     unset($values['id']);
                                     $data = [];
                                     foreach ($values as $key => $value) {
-                                        $prop = $this->$properties['fields'][$fieldName];
+                                        $prop = $properties['fields'][$key];
                                         //TODO validate some things like attributes from $prop...
                                         if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
                                             $data[$key] = $customFunctions[$key]($value, $values);
@@ -105,7 +105,7 @@ class InlineTableEdit {
                                             // Edit Entry
                                             try {
                                                 foreach ($values as $key => $value) {
-                                                    $prop = $this->$properties['fields'][$fieldName];
+                                                    $prop = $properties['fields'][$key];
                                                     //TODO validate some things like attributes from $prop...
                                                     if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
                                                         $row->set($key, $customFunctions[$key]($value, $row), false);
@@ -144,11 +144,24 @@ class InlineTableEdit {
         if (isset($prop['attributes']['strip_tags'])) {
             $value = strip_tags($value);
         }
+        if ($type == 'tinyint' && $prop['handler'] == 'bool') $type = 'bool';
         switch ($type) {
-            case 'string':
             case 'varchar':
+                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" size="20" />';
+            break;
+            case 'decimal':
             case 'int':
-                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" />';
+            case 'tinyint':
+            case 'smallint':
+            case 'mediumint':
+            case 'bigint':
+                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" size="6" />';
+            break;
+            case 'password':
+                echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" />';
+            break;
+            case 'bool':
+                echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' />';
             break;
             case 'image_upload':
                 X_simpleImageUpload($fieldName, $value, "//placehold.it/50x50&text=$fieldName", "?size=50x50&margins");
@@ -178,12 +191,13 @@ class InlineTableEdit {
 
     public function generateAddForm(array $row = [], array $customFunctions = []/* array of function(value, row) */) {
         $row['id'] = '_NEW_';
-        echo '<form class="inlineEditTable_add">';
+        echo '<form class="inlineEditTable_add" autocomplete="off">';
+        echo '<input autocomplete="false" name="hidden" type="text" style="display:none;">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
         foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
             echo '<label>';
             echo '<strong>';
-            echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', '', $fieldName));
+            echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
             echo '</strong>';
             if (isset($customFunctions[$fieldName]) && is_callable($customFunctions[$fieldName])) {
                 $customFunctions[$fieldName](@$row[$fieldName], $row);
@@ -192,6 +206,7 @@ class InlineTableEdit {
             }
             echo '</label>';
         }
+        echo '<br>';
         echo '<input type="submit" />';
         echo '</form>';
         ?>
@@ -220,6 +235,10 @@ class InlineTableEdit {
                 width: 250px;
                 padding: 6px;
             }
+            form.inlineEditTable_add > label > input[type="checkbox"] {
+                height: 30px;
+                width: 30px;
+            }
             form.inlineEditTable_add > label > textarea {
                 height: 100px;
             }
@@ -228,7 +247,7 @@ class InlineTableEdit {
                 clear: both;
                 width: 100px;
                 height: 30px;
-                margin: 10px auto;
+                margin: 20px auto;
                 border: solid 1px #aaa;
             }
         </style>
@@ -265,7 +284,7 @@ class InlineTableEdit {
             echo '</th>';
             foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
                 echo '<th>';
-                echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', '', $fieldName));
+                echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
                 echo '</th>';
             }
             echo '</tr>';
@@ -316,11 +335,12 @@ class InlineTableEdit {
             table.inlineTableEdit td select,
             table.inlineTableEdit td textarea {
                 background-color: transparent;
-                width: 100%;
+                max-width: 100%;
                 height: 100%;
-                min-height: 30px;
+                min-height: 60px;
                 display: block;
                 padding: 5px;
+                text-align: center;
             }
             table.inlineTableEdit td input {
                 
@@ -339,14 +359,18 @@ class InlineTableEdit {
         <script>
             // Ajax Auto Save
             $('table.inlineTableEdit').on('change', 'input, select, textarea', function(){
-                $input = $(this);
+                var $input = $(this);
                 if ($input.get(0).tagName == "INPUT" && $input.get(0).type == "file") return;
-                $td = $input.closest('td');
+                var $td = $input.closest('td');
                 $td.css('background-color', "#ff0");
                 var data = {
                     id: $td.attr('data-id'),
                 };
-                data[$td.attr('data-fieldname')] = $input.val();
+                var value = $input.val();
+                if ($input.get(0).tagName == "INPUT" && $input.get(0).type == "checkbox") {
+                    value = $input.prop('checked')? 1:0;
+                }
+                data[$td.attr('data-fieldname')] = value;
                 $.ajax({
                     url: '',
                     method: 'post',
