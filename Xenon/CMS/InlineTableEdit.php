@@ -65,10 +65,14 @@ class InlineTableEdit {
                                     unset($values['id']);
                                     $data = [];
                                     foreach ($values as $key => $value) {
-                                        //TODO validate some things like attributes from $properties...
+                                        $prop = $this->$properties['fields'][$fieldName];
+                                        //TODO validate some things like attributes from $prop...
                                         if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
                                             $data[$key] = $customFunctions[$key]($value, $values);
                                         } else {
+                                            if (isset($prop['attributes']['strip_tags'])) {
+                                                $value = strip_tags($value);
+                                            }
                                             $data[$key] = $value;
                                         }
                                     }
@@ -101,7 +105,8 @@ class InlineTableEdit {
                                             // Edit Entry
                                             try {
                                                 foreach ($values as $key => $value) {
-                                                    //TODO validate some things like attributes from $properties...
+                                                    $prop = $this->$properties['fields'][$fieldName];
+                                                    //TODO validate some things like attributes from $prop...
                                                     if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
                                                         $row->set($key, $customFunctions[$key]($value, $row), false);
                                                     } else {
@@ -135,34 +140,38 @@ class InlineTableEdit {
     public function generateField($row, $fieldName, $prop = null) {
         if ($prop === null) $prop = $this->data['properties']['fields'][$fieldName];
         $type = isset($prop['attributes']['type'])? $prop['attributes']['type'] : $prop['type'];
+        $value = @$row[$fieldName];
+        if (isset($prop['attributes']['strip_tags'])) {
+            $value = strip_tags($value);
+        }
         switch ($type) {
             case 'string':
             case 'varchar':
             case 'int':
-                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars(@$row[$fieldName]).'" />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" />';
             break;
             case 'image_upload':
-                X_simpleImageUpload($fieldName, @$row[$fieldName], "//placehold.it/50x50&text=$fieldName", "?size=50x50&margins");
+                X_simpleImageUpload($fieldName, $value, "//placehold.it/50x50&text=$fieldName", "?size=50x50&margins");
             break;
             case 'select':
                 echo '<select name="'.$fieldName.'">';
-                if (@$row[$fieldName] == '' && $row['id'] != '_NEW_') echo '<option></option>';
+                if ($value == '' && $row['id'] != '_NEW_') echo '<option></option>';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
                     $option_label = isset($prop['attributes']['option_label'])? $option_row[$prop['attributes']['option_label']] : $option_row->__toString();
-                    echo '<option '.(@$row[$fieldName] == $option_value ? 'selected':'').' value="'.$option_value.'">'.$option_label.'</option>';
+                    echo '<option '.($value == $option_value ? 'selected':'').' value="'.$option_value.'">'.$option_label.'</option>';
                 }
                 echo '</select>';
             break;
             case 'lang':
                 echo '<select name="'.$fieldName.'">';
-                if (@$row[$fieldName] == '' && $row['id'] != '_NEW_') echo '<option></option>';
+                if ($value == '' && $row['id'] != '_NEW_') echo '<option></option>';
                 foreach (explode('|', LANGS) as $lang) {
-                    echo '<option '.(@$row[$fieldName] == $lang ? 'selected':'').' value="'.$lang.'">'.$lang.'</option>';
+                    echo '<option '.($value == $lang ? 'selected':'').' value="'.$lang.'">'.$lang.'</option>';
                 }
                 echo '</select>';
             break;
             case 'text':
-                echo '<textarea name="'.$fieldName.'">'.htmlspecialchars(@$row[$fieldName]).'</textarea>';
+                echo '<textarea name="'.$fieldName.'">'.$value.'</textarea>';
             break;
         }
     }

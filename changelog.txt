@@ -3,6 +3,7 @@
     Improved templates
     Added base CSS and JS in templates
     Bugfixes
+    [WIP] InlineTableEdit
 
 0.5.2 - 2019-03-31
     Improved MySQL wrapper
