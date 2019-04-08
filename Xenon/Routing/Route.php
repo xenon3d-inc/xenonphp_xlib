@@ -11,6 +11,7 @@ class Route {
     public $params = array();
     public $routeParams = array();
     public $method = null;
+    public $login = null;
 
     public $executed = false;
 
@@ -101,6 +102,7 @@ class Route {
             array_unshift($this->routeParams, array_pop($this->routeArray));
         }
         $this->method = METHOD;
+        if (isset($this->routes[$this->route]['login'])) $this->login = $this->routes[$this->route]['login'];
         // Add string keys to route params
         if (!empty($this->routeParams) && is_array($this->routeParams) && !empty($this->routes[$this->route]) && is_array($this->routes[$this->route]['params'])) {
             foreach ($this->routeParams as $index => $val) {

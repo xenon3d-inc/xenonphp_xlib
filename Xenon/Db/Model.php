@@ -78,6 +78,73 @@ class Model
         }
     }
 
+    public function __toString() {
+        return get_called_class()."#".$this->id;
+    }
+
+    public static function getProperties($fetchXToOneOptions = false) {
+        $modelData = Schema\ModelData::get(get_called_class());
+        $properties = [
+            'table' => $modelData->getTable(),
+        ];
+        foreach ($modelData->getFields() as $fieldName => $columnData) {
+            $properties['fields'][$fieldName] = [
+                'field' => $fieldName,
+                'column' => $columnData->column,
+                'type' => $columnData->type,
+                // 'columnData' => $columnData,
+                'enum' => $columnData->enum,
+                'length' => $columnData->length,
+                'onetoone' => $columnData->onetoone,
+                'onetomany' => $columnData->onetomany,
+                'manytoone' => $columnData->manytoone,
+                'encrypted' => $columnData->encrypted,
+                'attributes' => $columnData->attributes,
+                'primary_key' => $columnData->id,
+                'translatable' => $columnData->translatable,
+            ];
+            $xToOne = $columnData->manytoone? $columnData->manytoone : $columnData->onetoone;
+            if ($fetchXToOneOptions && $xToOne) {
+                $properties['fields'][$fieldName]['options'] = $xToOne['model']::select()->fetchAllInfoArray(false, $xToOne['field']);
+            }
+        }
+        return $properties;
+    }
+
+    public function toTableArray($extended = false) {
+        $rowValues = [];
+        foreach ($this->_modelData->getFields() as $fieldName => $columnData) {
+            $columnName = $columnData->column;
+            if ($columnData->onetomany) {
+                $value = [];
+            } else if ($columnData->onetoone || $columnData->manytoone) {
+                $value = @$this->_original_values[$columnName];
+            } else {
+                $value = $this->get($fieldName, false);
+            }
+            if ($extended) {
+                $rowValues[$fieldName] = [
+                    'value' => $value,
+                    'rawvalue' => @$this->_original_values[$columnName],
+                    'type' => $columnData->type,
+                    // 'columnData' => $columnData,
+                    'enum' => $columnData->enum,
+                    'length' => $columnData->length,
+                    'onetoone' => $columnData->onetoone,
+                    'onetomany' => $columnData->onetomany,
+                    'manytoone' => $columnData->manytoone,
+                    'encrypted' => $columnData->encrypted,
+                    'attributes' => $columnData->attributes,
+                    'primary_key' => $columnData->id,
+                    'translatable' => $columnData->translatable,
+                ];
+            } else {
+                $rowValues[$fieldName] = $value;
+            }
+        }
+        return $rowValues;
+    }
+
     public function initFromQuery($query, $index) {
         $this->_isnew = false;
         $this->_query = $query;
@@ -162,9 +229,9 @@ class Model
         return new Query(new Query\Helper\Expr($queryExpr, get_called_class(), ...$args));
     }
 
-    public function count($columnName = null, $where = null, $distinct = null) {
-        if ($columnName) {
-            $column = $this->_modelData->getField($columnName);
+    public function count($fieldName = null, $where = null, $distinct = null) {
+        if ($fieldName) {
+            $column = $this->_modelData->getField($fieldName);
             // OneToMany
             if ($column && $column->onetomany && ($foreignColumn = (new Schema\ModelData)->get($column->onetomany['model'])->getField($column->onetomany['field'])) && $foreignColumn->manytoone) {
                 $query = (new Query\Select($column->onetomany['model'], ['COUNT' => new Expr("COUNT(".($distinct? "DISTINCT($distinct)" : "*").")")]))
@@ -172,7 +239,6 @@ class Model
                 if ($where !== null) $query->andWhere($where);
                 return $query->fetchCount();
             }
-
         }
     }
 
@@ -187,7 +253,9 @@ class Model
             $columns = implode(', ',
                 array_map(
                     function($columnData) use(&$values, $model, $self) {
-                        $values[] = $self->{$columnData->field};
+                        $val = $self->{$columnData->field};
+                        if ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES)) $val = null;
+                        $values[] = $val;
                         return new Field($model, $columnData);
                     },
                     $this->_modelData->getColumns()
@@ -205,9 +273,15 @@ class Model
                 if ($columnData->onupdate == 'current_timestamp') {
                     $this->$columnData = new Query\Helper\DateTime();
                 }
-                if (array_key_exists($columnData->column, $this->_original_values) && $this->$columnData != $this->_original_values[$columnData->column]) {
+                $val = $this->$columnData;
+                if (array_key_exists($columnData->column, $this->_original_values) && $val != $this->_original_values[$columnData->column]) {
+                    $field = new Field($model, $columnData);
                     if ($values != "") $values .= ", ";
-                    $values .= new Field($model, $columnData) . " = '" . mysqli_real_escape_string($link, $this->$columnData) . "'";
+                    if ($val === null || ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES))) {
+                        $values .= "$field = NULL";
+                    } else {
+                        $values .= "$field = '" . mysqli_real_escape_string($link, $val) . "'";
+                    }
                 }
             }
             if ($values != "") {
@@ -348,6 +422,7 @@ class Model
 
     // @translatable
     public static function getTranslatable($dbValue, $lang = null) {
+        if ($lang === false) return $dbValue;
         if ($lang === null) {
             if (defined('LANG')) $lang = LANG;
             else $lang = DEFAULT_LANG;
@@ -371,33 +446,41 @@ class Model
         return reset($dbValue);
     }
     public static function setTranslatable($dbValue, $newValue, $lang = null) {
-        if (!is_array($dbValue)) {
-            if (gettype($dbValue) == "NULL") {
-                $dbValue = [];
-            } else if (is_string($dbValue)) {
-                if ($dbValue === "") {
+        if ($lang === false) {
+            $dbValue = $newValue;
+        } else {
+            if ($lang === null) {
+                if (defined('LANG')) $lang = LANG;
+                else $lang = DEFAULT_LANG;
+            }
+            if (!is_array($dbValue)) {
+                if (gettype($dbValue) == "NULL") {
                     $dbValue = [];
-                } else {
-                    try {
-                        $jsonValue = json_decode($dbValue, true);
-                        if (gettype($jsonValue) == "NULL") {
-                            $jsonValue = [DEFAULT_LANG => $dbValue];
+                } else if (is_string($dbValue)) {
+                    if ($dbValue === "") {
+                        $dbValue = [];
+                    } else {
+                        try {
+                            $jsonValue = json_decode($dbValue, true);
+                            if (gettype($jsonValue) == "NULL") {
+                                $jsonValue = [DEFAULT_LANG => $dbValue];
+                            }
+                            $dbValue = $jsonValue;
+                        } catch (\Exception $e) {
+                            $dbValue = [DEFAULT_LANG => $dbValue];
                         }
-                        $dbValue = $jsonValue;
-                    } catch (\Exception $e) {
-                        $dbValue = [DEFAULT_LANG => $dbValue];
                     }
                 }
             }
-        }
-        if (is_array($newValue)) {
-            $dbValue = array_merge($dbValue, $newValue);
-        } else {
-            $dbValue[$lang] = $newValue;
-        }
-        foreach ($dbValue as $key => $value) {
-            if (is_int($key)) {
-                unset($dbValue[$key]);
+            if (is_array($newValue)) {
+                $dbValue = array_merge($dbValue, $newValue);
+            } else {
+                $dbValue[$lang] = $newValue;
+            }
+            foreach ($dbValue as $key => $value) {
+                if (is_int($key)) {
+                    unset($dbValue[$key]);
+                }
             }
         }
         return json_encode($dbValue);

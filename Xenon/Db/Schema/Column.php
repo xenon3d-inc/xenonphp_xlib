@@ -36,12 +36,17 @@ class Column
     protected $key = 'id'; // STRING  the field name to use as the key for xToMany arrays
     protected $value = null; // STRING  the field name to use as the value for xToMany arrays (null to use the entire object)
 
+    protected $attributes = []; // User-defined attributes (used with InlineTableEdit), keys starting with underscode in meta (@_attrname)
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Runtime model members, these are not annotations
     public $model, $field;
     public $handler = 'string'; // string | number | date | time | bool | json | id | enum | onetomany
-    public $enum = array();
+    public $enum = [];
+
+    // Constants
+    public static $AUTONULL_TYPES = ['bool', 'int', 'integer', 'tinyint', 'smallint', 'bigint', 'float', 'long', 'double', 'byte', 'short', 'array', 'json', 'enum', 'timestamp', 'date', 'time', 'datetime'];
 
     public function getColumnName()
     {
@@ -425,7 +430,15 @@ class Column
         if (method_exists($this, $func)) {
             return $this->$func();
         } else {
-            return $this->$key;
+            if (property_exists($this, $key)) {
+                return $this->$key;
+            } else {
+                if (substr($key, 0, 1) === '_') {
+                    return @$this->attributes[substr($key, 1)];
+                } else {
+                    trigger_error("Invalid Column Property '$key' for field `$this->field` in model $this->model", E_USER_NOTICE);
+                }
+            }
         }
     }
 
@@ -441,7 +454,11 @@ class Column
                 if (property_exists($this, $key)) {
                     $this->$key = $value;
                 } else {
-                    trigger_error("Invalid Meta Option '$key' for field `$this->field` in model $this->model", E_USER_NOTICE);
+                    if (substr($key, 0, 1) === '_') {
+                        $this->attributes[substr($key, 1)] = $value;
+                    } else {
+                        trigger_error("Invalid Meta Option '$key' for field `$this->field` in model $this->model", E_USER_NOTICE);
+                    }
                 }
             }
         }

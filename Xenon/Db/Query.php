@@ -102,11 +102,29 @@ class Query
         return $results;
     }
 
+    public function fetchAllTableArray($extended = false, $keyfield = 'id') {
+        $this->execute();
+        $results = [];
+        while($row = $this->fetchRow()) {
+            $results[$row->$keyfield] = $row->toTableArray($extended);
+        }
+        return $results;
+    }
+
     public function fetchArray($valuefield = null) {
         $this->execute();
         $results = [];
         while($row = $this->fetchRow()) {
             $results[] = $valuefield===null? $row : $row->$valuefield;
+        }
+        return $results;
+    }
+
+    public function fetchArrayTableArray($extended = false) {
+        $this->execute();
+        $results = [];
+        while($row = $this->fetchRow()) {
+            $results[] = $row->toTableArray($extended);
         }
         return $results;
     }

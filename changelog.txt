@@ -1,3 +1,9 @@
+0.6.0 - 2019-04-08
+    Improved MySQL wrapper
+    Improved templates
+    Added base CSS and JS in templates
+    Bugfixes
+
 0.5.2 - 2019-03-31
     Improved MySQL wrapper
 

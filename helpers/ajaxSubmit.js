@@ -19,11 +19,11 @@ function ajaxSubmit(elem, event) {
             $(elem.form).submit();
             break;
         case 'FORM':
-            var form = $(elem);
+            var $form = $(elem);
             $.ajax({
-                url: form.attr('action'),
-                type: form.attr('method'),
-                data: form.serialize(),
+                url: $form.attr('action'),
+                type: $form.attr('method'),
+                data: $form.serialize(),
                 success: function(response, textStatus, jqXHR){
                     var redirectUrl = jqXHR.getResponseHeader('X-Redirect');
                     var newUrl = jqXHR.getResponseHeader('X-ReplaceUrl');
