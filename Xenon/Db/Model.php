@@ -45,7 +45,6 @@ class Model
         } else {
             foreach ($this->_modelData->getFields() as $fieldName => $columnData) {
                 $columnName = $columnData->column;
-                $value = $columnData->id && $columnData->null ? NULL : $columnData->default;
                 if (isset($values[$fieldName])) {
                     $value = $values[$fieldName];
                     unset($values[$fieldName]);
@@ -53,17 +52,24 @@ class Model
                     $value = $values[$columnName];
                     unset($values[$columnName]);
                 } else {
-                    // Value for this field is not passed in
+                    // Value for this field is NOT passed in
 
-                    // If NOTNULL, ignore it and let MySQL set its default value or NULL when inserted
-                    if (!$columnData->null) {
-                        if ($value === NULL && !$columnData->id) {
-                            trigger_error("Value for field '$columnName' with no default cannot be NULL", E_USER_ERROR);
+                    // If NOTNULL or AUTO_INCREMENT, ignore it and let MySQL set its default value or NULL when inserted
+                    if (!$columnData->null || $columnData->auto_increment) {
+                        if (!$columnData->auto_increment && !$columnData->default) {
+                            trigger_error("Value for column '$columnName' with no default cannot be NULL", E_USER_ERROR);
                         }
                         continue;
                     }
                     // Do not set default values that are not numeric, leave them NULL or Automatic
                     if (!is_numeric($value)) {
+                        continue;
+                    }
+
+                    if ($columnData->default && $columnData->type != 'timestamp') {
+                        // If there is a default value and the type is not a timestamp, set default value, otherwise ignore it
+                        $value = $columnData->default;
+                    } else {
                         continue;
                     }
                 }
@@ -253,15 +259,19 @@ class Model
             $self = $this;
             $values = [];
             $columns = implode(', ',
-                array_map(
+                array_filter(array_map(
                     function($columnData) use(&$values, $model, $self) {
-                        $val = $self->{$columnData->field};
+                        if (isset($self->{$columnData->column})) $val = $self->{$columnData->column};
+                        else if (isset($self->{$columnData->field})) $val = $self->{$columnData->field};
+                        else if (array_key_exists($columnData->column, $self->_original_values)) $val = $self->_original_values[$columnData->column];
+                        else if (array_key_exists($columnData->field, $self->_original_values)) $val = $self->_original_values[$columnData->field];
+                        else return false; // If value was not passed to the object in any way, do not put it in the insert clause
                         if ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES)) $val = null;
                         $values[] = $val;
                         return new Field($model, $columnData);
                     },
                     $this->_modelData->getColumns()
-                )
+                ))
             );
             $query = new Query(new Expr("INSERT INTO `$table`($columns) VALUES(?)", $model, $values));
             $query->execute();

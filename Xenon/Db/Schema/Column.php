@@ -46,7 +46,7 @@ class Column
     public $enum = [];
 
     // Constants
-    public static $AUTONULL_TYPES = ['bool', 'int', 'integer', 'tinyint', 'smallint', 'bigint', 'float', 'long', 'double', 'byte', 'short', 'array', 'json', 'enum', 'timestamp', 'date', 'time', 'datetime'];
+    public static $AUTONULL_TYPES = ['bool', 'int', 'integer', 'tinyint', 'smallint', 'bigint', 'float', 'long', 'double', 'byte', 'short', 'array', 'json', 'enum', 'timestamp', 'date', 'time', 'datetime', 'decimal'];
 
     public function getColumnName()
     {

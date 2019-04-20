@@ -45,10 +45,12 @@ class Select extends \Xenon\Db\Query
             }
             array_push($this->fields, $field);
         }
+        return $this;
     }
     
     public function groupBy($expr) {
         $this->groupby = "".$expr;
+        return $this;
     }
 
     public function orderBy($fields) {
