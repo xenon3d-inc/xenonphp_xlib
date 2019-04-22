@@ -21,8 +21,12 @@ class Expr {
                     $value = array_shift($args);
                     if (!($value instanceof Field || $value instanceof Expr)) {
                         if (is_array($value)) {
-                            if (empty($value)) $value = [NULL];
-                            $value = "(".implode(",",array_map([$this, 'escapeWithQuotes'], $value)).")";
+                            if (empty($value)) {
+                                $value = "(NULL)";
+                                trigger_error("Query Expr with empty array may cause unexpected behaviour", E_USER_WARNING);
+                            } else {
+                                $value = "(".implode(",",array_map([$this, 'escapeWithQuotes'], $value)).")";
+                            }
                         } elseif ($value === null) {
                             $value = "NULL";
                         } else {

@@ -44,6 +44,21 @@ class Where {
                     }
                     
                     if (count($args) > 0) {
+
+                        // Handle special case with empty array IN () / NOT IN ()
+                        if (count($args) == 1 && is_array($args[0]) && empty($args[0])) {
+                            $expression = "".$this->where;
+                            if (preg_match("#^\s*[a-z_]+\w*\s*in\s*\(?\?\)?\s*$#i", $expression)) {
+                                // WHERE field IN ()
+                                $this->where = "0";
+                                return;
+                            } else if (preg_match("#^\s*[a-z_]+\w*\s*not\s*in\s*\(?\?\)?\s*$#i", $expression)) {
+                                // WHERE field NOT IN ()
+                                $this->where = "1";
+                                return;
+                            }
+                        }
+
                         $this->where = new Expr($this->where, $this->model, ...$args);
                     }
                 }
