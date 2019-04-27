@@ -37,6 +37,7 @@ class Column
     protected $value = null; // STRING  the field name to use as the value for xToMany arrays (null to use the entire object)
 
     protected $attributes = []; // User-defined attributes (used with InlineTableEdit), keys starting with underscode in meta (@_attrname)
+                                // label, readonly, options_label, type, strip_tags, ...
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -455,6 +456,11 @@ class Column
                     $this->$key = $value;
                 } else {
                     if (substr($key, 0, 1) === '_') {
+                        if ($value === null) $value = true;
+                        else if ($value === 'false') $value = false;
+                        else if ($value === '0') $value = 0;
+                        else if ($value === '""' || $value === "''") $value = '';
+                        else if ($value === 'NULL' || $value === "null") $value = null;
                         $this->attributes[substr($key, 1)] = $value;
                     } else {
                         trigger_error("Invalid Meta Option '$key' for field `$this->field` in model $this->model", E_USER_NOTICE);

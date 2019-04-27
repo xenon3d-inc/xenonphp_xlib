@@ -61,10 +61,6 @@ class Model
                         }
                         continue;
                     }
-                    // Do not set default values that are not numeric, leave them NULL or Automatic
-                    if (!is_numeric($value)) {
-                        continue;
-                    }
 
                     if ($columnData->default && $columnData->type != 'timestamp') {
                         // If there is a default value and the type is not a timestamp, set default value, otherwise ignore it
@@ -112,7 +108,7 @@ class Model
             ];
             $xToOne = $columnData->manytoone? $columnData->manytoone : $columnData->onetoone;
             if ($fetchXToOneOptions && $xToOne) {
-                $properties['fields'][$fieldName]['options'] = $xToOne['model']::select()->fetchAllInfoArray(false, $xToOne['field']);
+                $properties['fields'][$fieldName]['options'] = $xToOne['model']::select()->fetchAll($xToOne['field']);
             }
         }
         return $properties;

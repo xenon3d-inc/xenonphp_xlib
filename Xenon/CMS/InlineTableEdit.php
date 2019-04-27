@@ -29,7 +29,7 @@ class InlineTableEdit {
                             $query = $source::select();
                             $query->orderBy('id ASC');
                             $this->data = [
-                                'properties' => $source::getProperties(),
+                                'properties' => $source::getProperties(true),
                                 'rows' => $query->fetchAllTableArray(),
                             ];
                             return $this;
@@ -144,10 +144,11 @@ class InlineTableEdit {
         if (isset($prop['attributes']['strip_tags'])) {
             $value = strip_tags($value);
         }
+        $readonly = !empty($prop['attributes']['readonly'])? ' readonly ':'';
         if ($type == 'tinyint' && $prop['handler'] == 'bool') $type = 'bool';
         switch ($type) {
             case 'varchar':
-                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" size="20" />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" size="20" '.$readonly.' />';
             break;
             case 'decimal':
             case 'int':
@@ -155,28 +156,39 @@ class InlineTableEdit {
             case 'smallint':
             case 'mediumint':
             case 'bigint':
-                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" size="6" />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" size="'.(ceil($prop['length']/2)+1).'" '.$readonly.' />';
+            break;
+            case 'number':
+                echo '<input type="number" name="'.$fieldName.'" value="'.addslashes($value).'" size="'.(ceil($prop['length']/2)+1).'" '.$readonly.' />';
             break;
             case 'password':
-                echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" />';
+                echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" '.$readonly.' />';
+            break;
+            case 'timestamp':
+                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.addslashes($value).'" '.$readonly.' />';
             break;
             case 'bool':
-                echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' />';
+                echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' '.$readonly.' />';
             break;
             case 'image_upload':
-                X_simpleImageUpload($fieldName, $value, "//placehold.it/50x50&text=$fieldName", "?size=50x50&margins");
+                if ($readonly) {
+                    echo '<img src="'.($value?($value.'?size=50x50&margins'):'//placehold.it/50x50&text='.$fieldName).'" alt="'.$fieldName.'" />';
+                } else {
+                    X_simpleImageUpload($fieldName, $value, "//placehold.it/50x50&text=$fieldName", "?size=50x50&margins");
+                }
             break;
             case 'select':
-                echo '<select name="'.$fieldName.'">';
+            // var_dump($prop['options']);
+                echo '<select name="'.$fieldName.'" '.$readonly.' >';
                 if ($value == '' && $row['id'] != '_NEW_') echo '<option></option>';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
-                    $option_label = isset($prop['attributes']['option_label'])? $option_row[$prop['attributes']['option_label']] : $option_row->__toString();
+                    $option_label = isset($prop['attributes']['options_label'])? $option_row->{$prop['attributes']['options_label']} : $option_row->__toString();
                     echo '<option '.($value == $option_value ? 'selected':'').' value="'.$option_value.'">'.$option_label.'</option>';
                 }
                 echo '</select>';
             break;
             case 'lang':
-                echo '<select name="'.$fieldName.'">';
+                echo '<select name="'.$fieldName.'" '.$readonly.' >';
                 if ($value == '' && $row['id'] != '_NEW_') echo '<option></option>';
                 foreach (explode('|', LANGS) as $lang) {
                     echo '<option '.($value == $lang ? 'selected':'').' value="'.$lang.'">'.$lang.'</option>';
@@ -184,7 +196,7 @@ class InlineTableEdit {
                 echo '</select>';
             break;
             case 'text':
-                echo '<textarea name="'.$fieldName.'">'.$value.'</textarea>';
+                echo '<textarea name="'.$fieldName.'" '.$readonly.' >'.$value.'</textarea>';
             break;
         }
     }
@@ -194,7 +206,7 @@ class InlineTableEdit {
         echo '<form class="inlineEditTable_add" autocomplete="off">';
         echo '<input autocomplete="false" name="hidden" type="text" style="display:none;">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
-        foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
+        foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes'] && empty($prop['attributes']['readonly'])) {
             echo '<label>';
             echo '<strong>';
             echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
@@ -341,6 +353,10 @@ class InlineTableEdit {
                 display: block;
                 padding: 5px;
                 text-align: center;
+            }
+            table.inlineTableEdit td input[type="checkbox"] {
+                height: 30px;
+                width: 30px;
             }
             table.inlineTableEdit td input {
                 
