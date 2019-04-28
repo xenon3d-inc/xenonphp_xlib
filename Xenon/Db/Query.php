@@ -63,7 +63,7 @@ class Query
         if (($result = mysqli_fetch_array($this->resultset))) {
             return $result[$field];
         }
-        return 0;
+        return null;
     }
 
     public function fetchCount($field = 'COUNT') {
