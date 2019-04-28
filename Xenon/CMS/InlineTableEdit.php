@@ -165,7 +165,7 @@ class InlineTableEdit {
                 echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" '.$readonly.' />';
             break;
             case 'timestamp':
-                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.addslashes($value).'" '.$readonly.' />';
+                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.addslashes($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.' />';
             break;
             case 'bool':
                 echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' '.$readonly.' />';
@@ -204,7 +204,6 @@ class InlineTableEdit {
     public function generateAddForm(array $row = [], array $customFunctions = []/* array of function(value, row) */) {
         $row['id'] = '_NEW_';
         echo '<form class="inlineEditTable_add" autocomplete="off">';
-        echo '<input autocomplete="false" name="hidden" type="text" style="display:none;">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
         foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes'] && empty($prop['attributes']['readonly'])) {
             echo '<label>';
