@@ -27,7 +27,7 @@ class Database
             }
 
             if (DB_AUTO_UPDATE_STRUCTURE) {
-                $updateTime = date('YmdHMs');
+                $updateTime = date('YmdHis');
                 $query = (new \Xenon\Db\Schema\ModelData())->fromModel($model)->getCreateOrAlterQuery($this->db);
                 if ($query) {
                     $modelname = str_replace('\\', '.', strtolower($model));
