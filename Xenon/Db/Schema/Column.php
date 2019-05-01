@@ -179,8 +179,8 @@ class Column
         if (preg_match("#^(auto_timestamp|create_update_timestamp|update_create_timestamp)(\((\d)\))?$#i", $value, $matches)) {
             $this->type = 'timestamp';
             $this->length = !empty($matches[3])? $matches[3] : null;
-            $this->default = 'current_timestamp' . ((!empty($matches[3]))? ('('.$matches[3].')') : '');
-            $this->onupdate = 'current_timestamp' . ((!empty($matches[3]))? ('('.$matches[3].')') : '');
+            $this->default = 'current_timestamp(' . (!empty($matches[3])? $matches[3] : '') . ')';
+            $this->onupdate = 'current_timestamp(' . (!empty($matches[3])? $matches[3] : '') . ')';
             $this->null = false;
             $this->handler = 'date';
             return;
@@ -188,7 +188,7 @@ class Column
         if (preg_match("#^(current_timestamp|create_timestamp)(\((\d)\))?$#i", $value, $matches)) {
             $this->type = 'timestamp';
             $this->length = !empty($matches[3])? $matches[3] : null;
-            $this->default = 'current_timestamp' . ((!empty($matches[3]))? ('('.$matches[3].')') : '');
+            $this->default = 'current_timestamp(' . (!empty($matches[3])? $matches[3] : '') . ')';
             $this->null = false;
             $this->handler = 'date';
             return;
@@ -198,7 +198,7 @@ class Column
             $this->length = !empty($matches[3])? $matches[3] : null;
             $this->default = null;
             $this->null = true;
-            $this->onupdate = 'current_timestamp' . ((!empty($matches[3]))? ('('.$matches[3].')') : '');
+            $this->onupdate = 'current_timestamp(' . (!empty($matches[3])? $matches[3] : '') . ')';
             $this->handler = 'date';
             return;
         }
@@ -272,7 +272,7 @@ class Column
         if ($this->null === false) {
             // TIMESTAMP NOT NULL : DEFAULT CURRENT_TIMESTAMP
             if ($this->type == 'timestamp' && $this->default == null) {
-                $this->default = 'current_timestamp';
+                $this->default = 'current_timestamp()';
             }
         }
     }
