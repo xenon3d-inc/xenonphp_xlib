@@ -290,7 +290,7 @@ class Model
                         $values .= "$field = NULL";
                     } else {
                         $values .= "$field = ?";
-                        $replacements[] = mysqli_real_escape_string($link, $val);
+                        $replacements[] = $val;
                     }
                 }
             }

@@ -4,7 +4,7 @@
 
 function X_simpleImageUpload($name, $src, $defaultValue, $imageprocessor, $autoSubmit = false) {?>
 <div ondrop="dropUploadFile(event, this.querySelector('input[type=file]'));" style="position:relative;">
-    <img src="<?=$src? $src.$imageprocessor : $defaultValue?>"><br>
+    <img src="<?=$src? $src.$imageprocessor : $defaultValue?>" alt="<?=$name?>"><br>
     <input type="hidden" name="<?=$name?>" value="<?=$src?>">
     <input type="file"
         style="

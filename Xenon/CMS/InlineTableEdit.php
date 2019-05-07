@@ -5,7 +5,7 @@ class InlineTableEdit {
     protected $source;
     protected $data; // [ 'properties' => [...], 'rows' => [...] ]
 
-    public function __construct($source) {
+    public function __construct($source = null) {
         $this->source = $source;
         return $this;
     }
@@ -17,7 +17,7 @@ class InlineTableEdit {
         die($error?$error:"OK");
     }
 
-    public function loadData($source = false) {
+    public function loadData($source = false, $orderBy = 'id ASC') {
         if ($source === false) $source = $this->source;
         if ($source === null) return $this;
         switch (gettype($source)) {
@@ -27,7 +27,7 @@ class InlineTableEdit {
                         case 'Xenon\Db\Model':
                             $source = $this->source;
                             $query = $source::select();
-                            $query->orderBy('id ASC');
+                            $query->orderBy($orderBy);
                             $this->data = [
                                 'properties' => $source::getProperties(true),
                                 'rows' => $query->fetchAllTableArray(),
@@ -148,7 +148,7 @@ class InlineTableEdit {
         if ($type == 'tinyint' && $prop['handler'] == 'bool') $type = 'bool';
         switch ($type) {
             case 'varchar':
-                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" size="20" '.$readonly.' />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" '.$readonly.' />';
             break;
             case 'decimal':
             case 'int':
@@ -156,16 +156,16 @@ class InlineTableEdit {
             case 'smallint':
             case 'mediumint':
             case 'bigint':
-                echo '<input type="text" name="'.$fieldName.'" value="'.addslashes($value).'" size="'.(ceil($prop['length']/2)+1).'" '.$readonly.' />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil($prop['length']/2)+1).'" '.$readonly.' />';
             break;
             case 'number':
-                echo '<input type="number" name="'.$fieldName.'" value="'.addslashes($value).'" size="'.(ceil($prop['length']/2)+1).'" '.$readonly.' />';
+                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil($prop['length']/2)+1).'" '.$readonly.' />';
             break;
             case 'password':
                 echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" '.$readonly.' />';
             break;
             case 'timestamp':
-                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.addslashes($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.' />';
+                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.' />';
             break;
             case 'bool':
                 echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' '.$readonly.' />';
@@ -206,7 +206,7 @@ class InlineTableEdit {
         echo '<form class="inlineEditTable_add" autocomplete="off">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
         foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes'] && empty($prop['attributes']['readonly'])) {
-            echo '<label>';
+            echo '<label data-fieldname="'.$fieldName.'">';
             echo '<strong>';
             echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
             echo '</strong>';
@@ -294,7 +294,7 @@ class InlineTableEdit {
             echo 'ID / Delete';
             echo '</th>';
             foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
-                echo '<th>';
+                echo '<th data-fieldname="'.$fieldName.'">';
                 echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
                 echo '</th>';
             }
@@ -303,7 +303,7 @@ class InlineTableEdit {
         echo '<tbody>';
         foreach ($this->data['rows'] as $id => $row) {
             echo '<tr>';
-            echo '<td>';
+            echo '<td data-fieldname="id">';
             echo $id;
             echo '<i class="fas fa-times" data-delete-id="'.$id.'"></i>';
             echo '</td>';
