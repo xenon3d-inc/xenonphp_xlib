@@ -2,8 +2,8 @@
 namespace Xenon\CMS;
 
 class InlineTableEdit {
-    protected $source;
-    protected $data; // [ 'properties' => [...], 'rows' => [...] ]
+    public $source;
+    public $data; // [ 'properties' => [...], 'rows' => [...] ]
 
     public function __construct($source = null) {
         $this->source = $source;
@@ -29,13 +29,14 @@ class InlineTableEdit {
                             $query = $source::select();
                             $query->orderBy($orderBy);
                             $this->data = [
+                                'query' => "$query",
                                 'properties' => $source::getProperties(true),
                                 'rows' => $query->fetchAllTableArray(),
                             ];
                             return $this;
                         //TODO handle more class types
                         default:
-                            return $this->loadData(get_parent_class($source));
+                            return $this->loadData(get_parent_class($source), $orderBy);
                     }
                 } else {
                     //TODO handle more string source types
