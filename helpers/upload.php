@@ -3,7 +3,7 @@
 
 function X_upload($name = null, $filePrefix = null, $acceptFilenameRegex = "#\w+#", $refuseFilenameRegex = "#/|\.\.|\.(php|sh|js|cgi|phtml|exe|bat|cmd)$#i", $bufferSize = 4096) {
     if ($filePrefix === null) $filePrefix = uniqid();
-    if (length($filePrefix > 0)) $filePrefix .= '_';
+    if (strlen($filePrefix) > 0) $filePrefix .= '_';
 
     if ($name !== null && isset($_FILES[$name])) {
         $filename = $filePrefix.str_replace('&','',$_FILES[$name]['name']);
