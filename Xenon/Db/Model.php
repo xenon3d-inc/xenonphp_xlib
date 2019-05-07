@@ -277,6 +277,7 @@ class Model
         // UPDATE
         } else {
             $values = "";
+            $replacements = [];
             foreach ($this->_modelData->getColumns() as $columnData) {
                 if ($columnData->onupdate == 'current_timestamp') {
                     $this->$columnData = new Query\Helper\DateTime();
@@ -288,12 +289,14 @@ class Model
                     if ($val === null || ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES))) {
                         $values .= "$field = NULL";
                     } else {
-                        $values .= "$field = '" . mysqli_real_escape_string($link, $val) . "'";
+                        $values .= "$field = ?";
+                        $replacements[] = mysqli_real_escape_string($link, $val);
                     }
                 }
             }
             if ($values != "") {
-                $query = new Query(new Expr("UPDATE `$table` SET $values WHERE `id` = ?", $model, $this->id));
+                $replacements[] = $this->id;
+                $query = new Query(new Expr("UPDATE `$table` SET $values WHERE `id` = ?", $model, ...$replacements));
                 $query->execute();
                 $this->_lazyLoad = true;
             }

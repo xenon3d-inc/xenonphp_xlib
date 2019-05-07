@@ -1,3 +1,6 @@
+0.6.1 - 2019-05-07
+    Important BugFix in Model::save() : would crash when updating a value containing a '?' character
+
 0.6.0 - 2019-04-08
     Improved MySQL wrapper
     Improved templates
