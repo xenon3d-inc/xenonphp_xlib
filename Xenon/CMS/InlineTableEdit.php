@@ -149,7 +149,7 @@ class InlineTableEdit {
         if ($type == 'tinyint' && $prop['handler'] == 'bool') $type = 'bool';
         switch ($type) {
             case 'varchar':
-                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" '.$readonly.' />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" maxlength="'.$prop['length'].'" '.$readonly.' />';
             break;
             case 'decimal':
             case 'int':
@@ -157,10 +157,10 @@ class InlineTableEdit {
             case 'smallint':
             case 'mediumint':
             case 'bigint':
-                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil($prop['length']/2)+1).'" '.$readonly.' />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.' />';
             break;
             case 'number':
-                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil($prop['length']/2)+1).'" '.$readonly.' />';
+                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.' />';
             break;
             case 'password':
                 echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" '.$readonly.' />';
