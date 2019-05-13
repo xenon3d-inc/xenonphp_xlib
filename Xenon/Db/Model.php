@@ -233,6 +233,10 @@ class Model
         return new Query(new Query\Helper\Expr($queryExpr, get_called_class(), ...$args));
     }
 
+    public static function exists($value, $field = 'id') {
+        return !!((new Query\Select(get_called_class(), $field))->where($field, $value)->limit(1)->fetch());
+    }
+
     public function count($fieldName = null, $where = null, $distinct = null) {
         if ($fieldName) {
             $column = $this->_modelData->getField($fieldName);
