@@ -4,10 +4,6 @@
 if (!defined('PROD_DOMAIN')) define('PROD_DOMAIN', $_SERVER['PROD_DOMAIN']);
 if (!defined('DEV_DOMAIN')) define('DEV_DOMAIN', $_SERVER['DEV_DOMAIN']);
 
-// Determine if PROD or DEV (both can be true, both can be false... that is an accepted behaviour because when using these we may want to exclusively check a stage)
-if (!defined('DEV')) define('DEV', preg_match("#(^|\.)(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", $_SERVER['HTTP_HOST']));
-if (!defined('PROD')) define('PROD', preg_match("#(^|\.)(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", $_SERVER['HTTP_HOST']));
-
 // Paths
 if (!defined('REAL_DOCUMENT_ROOT')) define('REAL_DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT'] . '/');
 if (!defined('VIEW_PATH')) define('VIEW_PATH', APPLICATION_PATH . 'view/');
@@ -52,6 +48,10 @@ if (!defined('DB_UPDATES_CACHE_DIRECTORY')) define('DB_UPDATES_CACHE_DIRECTORY',
 // Asset Minification and Caching
 if (!defined('ASSETS_MINIFY_AND_CACHE_PATH')) define('ASSETS_MINIFY_AND_CACHE_PATH', CACHE_PATH . 'minified_assets/');
 
+// Determine if PROD or DEV (both can be true, both can be false... that is an accepted behaviour because when using these we may want to exclusively check a stage)
+if (!defined('DEV')) define('DEV', preg_match("#(^|\.)(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", DOMAIN_NAME));
+if (!defined('PROD')) define('PROD', preg_match("#(^|\.)(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", DOMAIN_NAME));
+
 ///////////////////////////////////////////////////////////////////
 
 // Error Handling
@@ -84,6 +84,8 @@ if (!defined('DONT_INCLUDE_HELPERS')) {
     require_once XLIB_PATH . 'helpers/i18n.php';
     require_once XLIB_PATH . 'helpers/simpleImageUpload.php';
     require_once XLIB_PATH . 'helpers/asset.php';
+    require_once XLIB_PATH . 'helpers/reCaptcha.php';
+    require_once XLIB_PATH . 'helpers/sendEmail.php';
 }
 
 // Use Autoload

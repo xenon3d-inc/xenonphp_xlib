@@ -1,3 +1,11 @@
+0.7.0 - 2019-06-03
+    Added vendor directory in xlib
+    Improved autoload, added support for vendor directory
+    Added PHPMailer in vendor
+    Added reCaptcha helper
+    Added sendEmail helper
+    Fixed DEV detection
+
 0.6.1 - 2019-05-07
     Important BugFix in Model::save() : would crash when updating a value containing a '?' character
 

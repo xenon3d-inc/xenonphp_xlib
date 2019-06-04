@@ -25,15 +25,34 @@ class X_BaseAutoload
             }
         }
 
+        // Decode class path
+        $relativeClassPath = str_replace('\\', '/', $className) . '.php';
+        $vendor = preg_match("#^/?(\w+)/.+$#", $relativeClassPath, $matches)? $matches[1] : null;
         // If no cache or class not found in cache, search for the file by path priority
-        $include_paths = array(
-            XLIB_PATH,
-            MODEL_PATH,
-            CONTROLLER_PATH,
-            LIB_PATH,
+        $potentialClassPaths = array(
+            MODEL_PATH . $relativeClassPath,
+            LIB_PATH . $relativeClassPath,
+            XLIB_PATH.'External/' . $relativeClassPath,
         );
-        foreach ($include_paths as $path) {
-            $classPath = $path . str_replace('\\', '/', $className) . '.php';
+        // Vendors
+        if ($vendor) {
+            array_unshift($potentialClassPaths, 
+                LIB_PATH.'vendor/' . $relativeClassPath,
+                LIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/", $relativeClassPath),
+                LIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/$vendor/", $relativeClassPath),
+                XLIB_PATH . $relativeClassPath,
+                XLIB_PATH.'vendor/' . $relativeClassPath,
+                XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/", $relativeClassPath),
+                XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/$vendor/", $relativeClassPath),
+            );
+        }
+        // Controllers
+        if (preg_match("#\w+Controller$#", $className)) {
+            array_unshift($potentialClassPaths, CONTROLLER_PATH . $relativeClassPath);
+        }
+        // Find first existing class file
+        foreach ($potentialClassPaths as $classPath) {
+            $classPath = str_replace('//', '/', $classPath);
             if (is_file($classPath)) {
                 // Class File found, include it and stop the search
                 require_once $classPath;
