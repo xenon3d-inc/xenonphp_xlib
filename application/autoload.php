@@ -40,10 +40,14 @@ class X_BaseAutoload
                 LIB_PATH.'vendor/' . $relativeClassPath,
                 LIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/", $relativeClassPath),
                 LIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/$vendor/", $relativeClassPath),
+                LIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/lib/", $relativeClassPath),
+                LIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/lib/$vendor/", $relativeClassPath),
                 XLIB_PATH . $relativeClassPath,
                 XLIB_PATH.'vendor/' . $relativeClassPath,
                 XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/", $relativeClassPath),
                 XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/$vendor/", $relativeClassPath),
+                XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/lib/", $relativeClassPath),
+                XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/lib/$vendor/", $relativeClassPath),
             );
         }
         // Controllers

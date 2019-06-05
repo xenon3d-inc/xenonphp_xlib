@@ -4,3 +4,6 @@
 [submodule "vendor/PHPMailer"]
 	path = vendor/PHPMailer
 	url = https://github.com/PHPMailer/PHPMailer.git
+[submodule "vendor/Stripe"]
+	path = vendor/Stripe
+	url = https://github.com/stripe/stripe-php.git
