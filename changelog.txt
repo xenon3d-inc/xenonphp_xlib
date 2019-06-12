@@ -1,3 +1,8 @@
+0.7.1 - 2019-06-11
+    Improved Xenon\Db\Query::fetchAll() and Xenon\Db\Model::fetchAll()
+        (added complex return format functionality based on given params)
+    Improved Xenon\CMS\InlineTableEdit
+
 0.7.0 - 2019-06-03
     Added vendor directory in xlib
     Improved autoload, added support for vendor directory

@@ -93,11 +93,91 @@ class Query
         return $result;
     }
 
+    /*
+        $keyfield can either be null (for indexed array of rows) or string (for associative array of rows based on a specific field key)
+        $valuefield can be one of : 
+            null
+                returns the row model object as is
+            "field1" (string)
+                returns the value of the specified field
+            function($row){...} (callable)
+                returns the result of that function which is called for each row
+            []  [null]   (array with single null value or empty array)
+                returns an array with all model objects sharing the same key
+            ['field']  (array with single string value)
+                returns an array with all values (from specified field) grouped by rows sharing the same key
+            [function($row){...}]  (array with single callable)
+                returns an array with all values (calculated using callable) grouped by rows sharing the same key
+            ['field1', 'field2'] 
+                (array of strings)
+                returns an associative array with specified fields and their values
+            ['key1' => 'field1', 'key2' => 'field2'] 
+                (associative array of strings)
+                returns an associative array with custom keys pointing to specified fields and their values
+            [['field1', 'field2']]
+                (array of arrays of strings)
+                returns an associative array of associative arrays with specified fields and their values, grouped by a shared key value
+            [['key1' => 'field1', 'key2' => 'field2'] ]
+                (array of associative arrays of strings)
+                returns an associative array of associative arrays with custom keys pointing to specified fields and their values, grouped by a shared key value
+            ['key1' => function($row){...}, 'key2' => function($row){...}]  (array of callables)
+                returns an associative array with custom keys and their calculated values using the provided callable
+            [['key1' => function($row){...}, 'key2' => function($row){...}]]  (array of callables)
+                returns an associative array of associative arrays with custom keys and their calculated values using the provided callable, grouped by a shared key value
+            
+            when $valuefield is an associative array, we can mix strings and callables
+    */
     public function fetchAll($keyfield = 'id', $valuefield = null) {
         $this->execute();
+        
+        // Handle Array of array
+        $is_array_of_array = false;
+        if (is_array($valuefield) && count($valuefield) == 1 && isset($valuefield[0])) {
+            $is_array_of_array = true;
+            $valuefield = $valuefield[0];
+        }
+        if ($keyfield === null && $is_array_of_array) {
+            trigger_error("Must set a keyfield when using grouped associative arrays");
+        }
+
         $results = [];
         while($row = $this->fetchRow()) {
-            $results[$row->$keyfield] = $valuefield===null? $row : $row->$valuefield;
+            if (is_null($valuefield)) {
+                $val = $row;
+            } else if (is_string($valuefield)) {
+                $val = $row->$valuefield;
+            } else if (is_callable($valuefield)) {
+                $val = $valuefield($row);
+            } else if (is_array($valuefield)) {
+                $val = [];
+                if (is_array($valuefield)) {
+                    foreach ($valuefield as $key => $field) {
+                        if (is_int($key)) $key = $field;
+                        if (is_string($field)) {
+                            $val[$key] = $row->$field;
+                        } else if (is_callable($field)) {
+                            $val[$key] = $field($row);
+                        }
+                    }
+                } else {
+                    if (is_string($field)) {
+                        $val = $row->$field;
+                    } else if (is_callable($field)) {
+                        $val = $field($row);
+                    }
+                }
+            } else {
+                trigger_error("Invalid type for valuefield");
+            }
+            if ($keyfield === null) {
+                $results[] = $val;
+            } else {
+                if ($is_array_of_array) {
+                    $results[$row->$keyfield][] = $val;
+                } else {
+                    $results[$row->$keyfield] = $val;
+                }
+            }
         }
         return $results;
     }

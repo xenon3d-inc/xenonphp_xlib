@@ -10,7 +10,7 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function ajaxAutoSave(array $customFunctions = []/* array of function(value, row) */) {
+    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop) */) {
         if (!AJAX) return $this;
         if (($upload = X_upload())) die($upload);
         $this->saveData($_POST, $error, false, $customFunctions);
@@ -47,7 +47,7 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of function(value, row) */) {
+    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function(value, row, prop) */) {
         if ($source === false) $source = $this->source;
         if ($source === null) {
             $error = "Source Error";
@@ -69,7 +69,7 @@ class InlineTableEdit {
                                         $prop = $properties['fields'][$key];
                                         //TODO validate some things like attributes from $prop...
                                         if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
-                                            $data[$key] = $customFunctions[$key]($value, $values);
+                                            $data[$key] = $customFunctions[$key]($value, $values, $prop);
                                         } else {
                                             if (isset($prop['attributes']['strip_tags'])) {
                                                 $value = strip_tags($value);
@@ -109,7 +109,7 @@ class InlineTableEdit {
                                                     $prop = $properties['fields'][$key];
                                                     //TODO validate some things like attributes from $prop...
                                                     if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
-                                                        $row->set($key, $customFunctions[$key]($value, $row), false);
+                                                        $row->set($key, $customFunctions[$key]($value, $row, $prop), false);
                                                     } else {
                                                         $row->set($key, $value, false);
                                                     }
@@ -138,6 +138,12 @@ class InlineTableEdit {
         return $this;
     }
 
+    public function setFieldSelectOptions($fieldName, $options = ["" => ""], $options_label = null) {
+        $this->data['properties']['fields'][$fieldName]['attributes']['type'] = 'select';
+        $this->data['properties']['fields'][$fieldName]['attributes']['options_label'] = $options_label;
+        $this->data['properties']['fields'][$fieldName]['options'] = $options;
+    }
+
     public function generateField($row, $fieldName, $prop = null) {
         if ($prop === null) $prop = $this->data['properties']['fields'][$fieldName];
         $type = isset($prop['attributes']['type'])? $prop['attributes']['type'] : $prop['type'];
@@ -146,10 +152,29 @@ class InlineTableEdit {
             $value = strip_tags($value);
         }
         $readonly = !empty($prop['attributes']['readonly'])? ' readonly ':'';
-        if ($type == 'tinyint' && $prop['handler'] == 'bool') $type = 'bool';
+        if ($type == 'tinyint' && $prop['handler'] == 'bool') {
+            $type = 'bool';
+        } else if ($type == 'varchar' && $prop['handler'] == 'enum') {
+            $type = 'select';
+            if (empty($prop['options'])) {
+                $prop['options'] = [];
+                foreach ($prop['enum'] as $v) {
+                    $prop['options'][$v] = $v;
+                }
+            }
+        } else if ($type == 'int' && ($prop['handler'] == 'manytoone' || $prop['handler'] == 'onetoone')) {
+            $type = 'select';
+        }
         switch ($type) {
             case 'varchar':
+                //TODO implement translatable
                 echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" maxlength="'.$prop['length'].'" '.$readonly.' />';
+            break;
+            case 'email':
+                echo '<input type="email" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.' />';
+            break;
+            case 'phone':
+                echo '<input type="phone" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.' />';
             break;
             case 'decimal':
             case 'int':
@@ -165,6 +190,9 @@ class InlineTableEdit {
             case 'password':
                 echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" '.$readonly.' />';
             break;
+            case 'date':
+                echo '<input type="date" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d'):'').'" '.$readonly.' />';
+            break;
             case 'timestamp':
                 echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.' />';
             break;
@@ -179,11 +207,11 @@ class InlineTableEdit {
                 }
             break;
             case 'select':
-            // var_dump($prop['options']);
                 echo '<select name="'.$fieldName.'" '.$readonly.' >';
-                if ($value == '' && $row['id'] != '_NEW_') echo '<option></option>';
+                if (($value == '' && $row['id'] != '_NEW_') || $prop['null']) echo '<option></option>';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
-                    $option_label = isset($prop['attributes']['options_label'])? $option_row->{$prop['attributes']['options_label']} : $option_row->__toString();
+                    $option_labelField = @$prop['attributes']['options_label'];
+                    $option_label = $option_labelField? (is_object($option_row)? $option_row->$option_labelField : $option_row[$option_labelField]) : $option_row;
                     echo '<option '.($value == $option_value ? 'selected':'').' value="'.$option_value.'">'.$option_label.'</option>';
                 }
                 echo '</select>';
@@ -197,12 +225,13 @@ class InlineTableEdit {
                 echo '</select>';
             break;
             case 'text':
+                //TODO implement translatable
                 echo '<textarea name="'.$fieldName.'" '.$readonly.' >'.$value.'</textarea>';
             break;
         }
     }
 
-    public function generateAddForm(array $row = [], array $customFunctions = []/* array of function(value, row) */) {
+    public function generateAddForm(array $row = [], array $customFunctions = []/* array of field => function(value, row, prop) */) {
         $row['id'] = '_NEW_';
         echo '<form class="inlineEditTable_add" autocomplete="off">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
@@ -212,7 +241,7 @@ class InlineTableEdit {
             echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
             echo '</strong>';
             if (isset($customFunctions[$fieldName]) && is_callable($customFunctions[$fieldName])) {
-                $customFunctions[$fieldName](@$row[$fieldName], $row);
+                $customFunctions[$fieldName](@$row[$fieldName], $row, $prop);
             } else {
                 $this->generateField($row, $fieldName, $prop);
             }
@@ -286,7 +315,7 @@ class InlineTableEdit {
         <?php
     }
 
-    public function generateTable(array $customFunctions = []/* array of function(value, row) */) {
+    public function generateTable(array $customFunctions = []/* array of field => function(value, row, prop) */) {
         X_js(XLIB_PATH.'helpers/ajaxUpload.js');
         echo '<table class="inlineTableEdit">';
         echo '<thead>';
@@ -311,7 +340,7 @@ class InlineTableEdit {
             foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
                 echo '<td data-id="'.$id.'" data-fieldname="'.$fieldName.'">';
                 if (isset($customFunctions[$fieldName]) && is_callable($customFunctions[$fieldName])) {
-                    $customFunctions[$fieldName](@$row[$fieldName], $row);
+                    $customFunctions[$fieldName](@$row[$fieldName], $row, $prop);
                 } else {
                     $this->generateField($row, $fieldName, $prop);
                 }
@@ -335,6 +364,7 @@ class InlineTableEdit {
                 padding: 10px;
             }
             table.inlineTableEdit td {
+                background-color: #fff;
                 border: solid 1px #ccc;
                 padding: 5px;
                 text-align: center;
@@ -371,36 +401,70 @@ class InlineTableEdit {
                 margin: 10px;
                 max-height: 50px;
             }
+            table.inlineTableEdit td[status="saving"] {
+                background-color: #ff0;
+            }
+            table.inlineTableEdit td[status="success"] {
+                background-color: #080;
+            }
+            table.inlineTableEdit td[status="error"] {
+                background-color: #f00;
+            }
+            table.inlineTableEdit td[status=""] {
+                transition: background-color 1000ms;
+            }
         </style>
         <script>
             // Ajax Auto Save
-            $('table.inlineTableEdit').on('change', 'input, select, textarea', function(){
+            /*
+                Custom JS functions : 
+                    X_tableEditBeforeAjax_FIELDNAME(data, $td) // we may modify data, return false to cancel the ajax request
+                    X_tableEditAjaxSuccess_FIELDNAME(response, $td) // return true for success, otherwise its considered a failure, string is an error message
+            */
+            $('table.inlineTableEdit').on('change', 'input[name], select[name], textarea[name]', function(){
                 var $input = $(this);
                 if ($input.get(0).tagName == "INPUT" && $input.get(0).type == "file") return;
                 var $td = $input.closest('td');
-                $td.css('background-color', "#ff0");
+                var customBeforeFunc = 'X_tableEditBeforeAjax_'+$td.attr('data-fieldname');
+                var customSuccessFunc = 'X_tableEditAjaxSuccess_'+$td.attr('data-fieldname');
                 var data = {
                     id: $td.attr('data-id'),
                 };
-                var value = $input.val();
-                if ($input.get(0).tagName == "INPUT" && $input.get(0).type == "checkbox") {
-                    value = $input.prop('checked')? 1:0;
+                $td.find('[name]').each(function(){
+                    var value = $(this).val();
+                    if (this.tagName == "INPUT" && this.type == "checkbox") {
+                        value = $(this).prop('checked')? 1:0;
+                    }
+                    data[$(this).attr('name')/*$td.attr('data-fieldname')*/] = value;
+                });
+                if (typeof window[customBeforeFunc] === 'function') {
+                    if (window[customBeforeFunc](data, $td) === false) {
+                        return;
+                    }
                 }
-                data[$td.attr('data-fieldname')] = value;
+                $td.attr('status', "saving");
                 $.ajax({
                     url: '',
                     method: 'post',
                     data: data,
                     success: function(response){
-                        if (response === "OK") {
-                            $td.css('background-color', "#080").stop().animate({'background-color': '#fff'}, 2000);
+                        if (typeof window[customSuccessFunc] === 'function') {
+                            response = window[customSuccessFunc](response, $td);
                         } else {
-                            $td.css('background-color', "#f00");
+                            if (response === "OK") {
+                                response = true;
+                            }
+                        }
+                        if (response === true) {
+                            $td.attr('status', "success");
+                            setTimeout(function(){$td.attr('status', "");}, 1000);
+                        } else {
+                            $td.attr('status', "error");
                             alert(response);
                         }
                     },
                     error: function(response){
-                        $td.css('background-color', "#f00");
+                        $td.attr('status', "error");
                         alert(response);
                     },
                     complete: function(){
@@ -408,6 +472,7 @@ class InlineTableEdit {
                     }
                 });
             });
+            // Ajax Delete
             $('table.inlineTableEdit').on('click', '[data-delete-id]', function(){
                 if (confirm("Delete this entry ?")) {
                     $.ajax({

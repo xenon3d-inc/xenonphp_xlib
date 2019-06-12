@@ -95,6 +95,7 @@ class Model
                 'column' => $columnData->column,
                 'type' => $columnData->type,
                 'handler' => $columnData->handler,
+                'null' => $columnData->null,
                 // 'columnData' => $columnData,
                 'enum' => $columnData->enum,
                 'length' => $columnData->length,
@@ -131,6 +132,7 @@ class Model
                     'rawvalue' => @$this->_original_values[$columnName],
                     'type' => $columnData->type,
                     'handler' => $columnData->handler,
+                    'null' => $columnData->null,
                     // 'columnData' => $columnData,
                     'enum' => $columnData->enum,
                     'length' => $columnData->length,
@@ -180,13 +182,9 @@ class Model
         (new Query("commit"))->execute(Database::getInstanceForModel(get_called_class()));
     }
 
-    public static function fetchAll() {
+    public static function fetchAll(...$args) {
         $query = new Query\Select(get_called_class());
-        $results = [];
-        while($row = $query->fetchRow()) {
-            $results[$row->id] = $row;
-        }
-        return $results;
+        return $query->fetchAll(...$args);
     }
 
     public static function fetchAllBy($field, $value = null) {
