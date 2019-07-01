@@ -47,7 +47,7 @@ class X_BaseAutoload
                 XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/", $relativeClassPath),
                 XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/src/$vendor/", $relativeClassPath),
                 XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/lib/", $relativeClassPath),
-                XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/lib/$vendor/", $relativeClassPath),
+                XLIB_PATH.'vendor/' . preg_replace("#^/?($vendor/)+#", "$vendor/lib/$vendor/", $relativeClassPath)
             );
         }
         // Controllers
