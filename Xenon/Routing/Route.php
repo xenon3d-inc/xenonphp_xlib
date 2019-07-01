@@ -237,13 +237,13 @@ class Route {
             $params = [];
             foreach ($routeParams as $key => $val) {
                 foreach ($this->routes[$route]['params'] as $i => $p) {
-                    if ($key === $p) {
-                        $params[$i] = (trim($val) == "")? "_" : trim($val);
+                    if ($key === $p || preg_match("#^(".preg_quote($key, "#")."):#i", $p)) {
+                        $params[$i] = (trim($val) == "")? "0" : trim($val);
                         break;
                     }
                 }
             }
-            sort($params, SORT_NUMERIC);
+            ksort($params, SORT_NUMERIC);
         }
         $params = (is_array($params) && count($params)) ? '/' . implode('/', $params) : "";
 
