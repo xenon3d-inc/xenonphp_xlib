@@ -1,3 +1,8 @@
+0.7.2 - 2019-07-10
+    Improved Xenon\CMS\InlineTableEdit (and added wysiwyg field type)
+    Added email template system
+    few fixes in DB wrapper and such
+
 0.7.1 - 2019-06-11
     Improved Xenon\Db\Query::fetchAll() and Xenon\Db\Model::fetchAll()
         (added complex return format functionality based on given params)

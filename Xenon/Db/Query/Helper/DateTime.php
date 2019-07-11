@@ -12,7 +12,7 @@ class DateTime {
         } else if (preg_match("/^current_timestamp\(\d\)$/", $datetime)) {
             $datetime = microtime(true);
         }
-        if (!$datetime || $datetime == '0000-00-00 00:00:00' || $datetime == '0000-00-00 00:00:00.0000') {
+        if (!$datetime || $datetime == '0000-00-00' || $datetime == '0000-00-00 00:00:00' || $datetime == '0000-00-00 00:00:00.0000') {
             $this->isnull = true;
             $this->timestamp = 0;
         } else {

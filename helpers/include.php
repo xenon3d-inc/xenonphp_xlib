@@ -1,6 +1,11 @@
 <?php
 function X_include_start_buffer($filepath, $required = false, $once = false) {
-    global $X, $X_PROJECT, $X_ERROR, $X_CONFIG, $X_CHARSET, $X_ROUTE, $X_DB, $X_LAYOUT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_VIEW_RETURN, $X_USER, $X_CONTROLLER;
+    global $X, $X_PROJECT, $X_ERROR, $X_CONFIG, $X_CHARSET, $X_ROUTE, $X_DB, $X_LAYOUT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_VIEW_RETURN, $X_USER, $X_CONTROLLER, $X_VARS, $X_EMAIL_TEMPLATE;
+    if (!empty($X_VARS) && is_array($X_VARS)) {
+        foreach ($X_VARS as $key=>$val) {
+            if (!is_numeric($key)) $$key = $val;
+        }
+    }
     ob_start(OUTPUT_HANDLER);
     if ($required && $once) {
         return require_once $filepath;

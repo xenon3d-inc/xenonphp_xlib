@@ -8,11 +8,12 @@
  *
  *
  * Usage :
- *
- *      <div ondrop="dropUploadFile(event, this.querySelector('input[type=file]'));">
- *          <input type="file" multiple="multiple" onchange="dropUploadFile(event, 'upload.php');" />
- *      </div>
- *
+ * 
+    <script><?php include XLIB_PATH.'helpers/ajaxUpload.js';?></script>
+    <div ondrop="dropUploadFile(event, this.querySelector('input[type=file]'));">
+        <input type="file" multiple="multiple" onchange="dropUploadFile(event, 'upload.php');" />
+    </div>
+ * 
  *
  *///?>
 
@@ -48,7 +49,7 @@ function ajaxUpload(fileObject, url, options, sync) {
     options = $.extend({
         maxFiles : null,
         maxFileSize : null, // in Bytes
-        allowedFileTypes : null, // Mime-types (ex: ['image/jpeg', 'image/png'] )
+        allowedFileTypes : null, // Mime-types (ex: ['image/jpeg', 'image/png', 'image/gif'] )
         deniedFileTypes : null,
         progressCallback : function(pourcentage) {
             console.log(pourcentage + '%');

@@ -1,7 +1,14 @@
 <?php 
 
-function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $from_email = null, $from_name = null) {
+function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $from_email = null, $from_name = null, $cc = null, $bcc = null) {
     global $X_CONFIG;
+
+    $to = array_filter((array)$to, 'trim');
+    if (empty($to)) {
+        if (DEV) die("No recipient given for email with subject $subject");
+        return false;
+    }
+
     $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
     try {
         if (!empty($X_CONFIG['smtp']['username'])) {
@@ -23,11 +30,18 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
         if ($replyTo) {
             $mail->AddReplyTo($replyTo);
         }
-        foreach ((array) $to as $to) $mail->addAddress($to);
+
+        $mail->CharSet = !empty($X_CONFIG['smtp']['charset'])? $X_CONFIG['smtp']['charset'] : 'UTF-8';
+        $mail->Encoding = !empty($X_CONFIG['smtp']['encoding'])? $X_CONFIG['smtp']['encoding'] : 'base64';
+        
         $mail->isHTML($isHtml);
         
         $mail->Subject = $subject;
         $mail->Body = $body;
+        
+        foreach ((array) $to as $to) if (trim($to)) $mail->addAddress(trim($to));
+        if (!empty($cc))  foreach ((array) $cc as $cc)   if (trim($cc))  $mail->addCC(trim($cc));
+        if (!empty($bcc)) foreach ((array) $bcc as $bcc) if (trim($bcc)) $mail->addBcc(trim($bcc));
 
         $mail->send();
         return true;
@@ -35,4 +49,41 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
         if (DEV) die("PHPMailer Error: ".$mail->ErrorInfo);
     }
     return false;
+}
+
+function X_sendEmailTemplate($template, array $vars = [], $to = null, $subject = null, $reply_to = null, $from_email = null, $from_name = null, $cc = null, $bcc = null) {
+    global $X_VARS, $X_EMAIL_TEMPLATE;
+
+    // Check template
+    $templatePath = EMAIL_PATH.$template.".phtml";
+    if (!is_file($templatePath)) {
+        if (DEV) die("Email Template not found in $templatePath");
+        return false;
+    }
+
+    // Prepare vars and params
+    $tmp_X_VARS = $X_VARS;
+    if (!empty($vars) && is_array($vars)) $X_VARS = $vars;
+    $body = X_include_return($templatePath);
+    if (!empty($X_EMAIL_TEMPLATE) && is_array($X_EMAIL_TEMPLATE)) {
+        foreach ($X_EMAIL_TEMPLATE as $key => $val) {
+            if ($$key === null) {
+                $$key = $val;
+            }
+        }
+    }
+
+    // Reset globals
+    $X_VARS = $tmp_X_VARS;
+    $X_EMAIL_TEMPLATE = null;
+
+    $to = array_filter((array)$to, 'trim');
+
+    if (empty($to)) {
+        if (DEV) die("No recipient given for email template $template");
+        return false;
+    }
+
+    // Send the email
+    return X_sendEmail($to, $subject, $body, true, $reply_to, $from_email, $from_name, $cc, $bcc);
 }

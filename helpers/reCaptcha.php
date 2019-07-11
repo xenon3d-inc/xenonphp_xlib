@@ -10,10 +10,13 @@ function X_reCaptcha_init($action = null) {
     <?php }?>
     <script>
         var X_reCaptcha_token = null;
-        function X_runReCaptcha() {
+        function X_runReCaptcha(callback) {
             grecaptcha.execute('<?=$X_CONFIG['recaptcha']['site_key']?>', {action: '<?=$action?>'}).then(function(token) {
                 X_reCaptcha_token = token;
-                $('input[name="recaptcha-token"]').val(token);
+                if (typeof callback === 'function') {
+                    $('input[name="recaptcha-token"]').val(token);
+                    callback(token);
+                }
             });
         }
     </script>

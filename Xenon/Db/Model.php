@@ -412,7 +412,11 @@ class Model
                     $value = static::$handler_func($value, $columnData, $this);
                     if ($columnData->encrypted) $value = static::setEncrypted($value, $fieldName);
                     if ($columnData->translatable) $value = static::setTranslatable($this->$fieldName, $value, $lang);
-                    $this->$fieldName = $value;
+                    if (($columnData->handler === 'onetoone' || $columnData->handler === 'manytoone') && $fieldName != $columnName) {
+                        $this->$columnName = $value;
+                    } else {
+                        $this->$fieldName = $value;
+                    }
                 } else {
                     trigger_error("Handler static method '$handler_func' not defined in model ".get_called_class(), E_USER_ERROR);
                 }
@@ -570,7 +574,7 @@ class Model
         return $value;
     }
 
-    // OneToOne
+    // OneToOne (handle almost identical to ManyToOne...)
     public static function handler_get_onetoone($value, Schema\Column $column, &$modelRow) {
         if (is_object($value)) return $value;
         if ($column->onetoone) {

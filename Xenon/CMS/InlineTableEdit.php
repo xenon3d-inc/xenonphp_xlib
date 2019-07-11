@@ -177,13 +177,13 @@ class InlineTableEdit {
                 echo '<input type="phone" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.' />';
             break;
             case 'decimal':
+                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" step="'.(1.0/pow(10, (int)preg_replace("#\d+,\s*(\d+)#","$1",$prop['length']))).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.' />';
+            break;
             case 'int':
             case 'tinyint':
             case 'smallint':
             case 'mediumint':
             case 'bigint':
-                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.' />';
-            break;
             case 'number':
                 echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.' />';
             break;
@@ -227,6 +227,47 @@ class InlineTableEdit {
             case 'text':
                 //TODO implement translatable
                 echo '<textarea name="'.$fieldName.'" '.$readonly.' >'.$value.'</textarea>';
+            break;
+            case 'wysiwyg':
+                static $ckeditor_preloaded = false;
+                if (!$ckeditor_preloaded) {
+                    ?>
+                    <script src="//cdn.ckeditor.com/4.5.7/full/ckeditor.js"></script>
+                    <script>
+                        function wysiwyg_CKEditor_inline_edit(elem, event) {
+                            if (event !== undefined) {
+                                event.stopPropagation();
+                                event.preventDefault();
+                            }
+                            if (!$(elem).hasClass('editing')) {
+                                $(elem).addClass('editing');
+                                CKEDITOR.inline(elem, {
+                                    customConfig: false,
+                                    width: 'auto',
+                                    height: 'auto',
+                                    language: '<?=(LANG=='fr'?'fr-ca':LANG)?>',
+                                    toolbarGroups: [
+                                        { name: 'basicstyles', groups: [ 'basicstyles', 'cleanup' ] },
+                                        { name: 'links' },
+                                        { name: 'styles' },
+                                        { name: 'colors' },
+                                    ]
+                                });
+                                elem.setAttribute('contenteditable', true);
+                                elem.focus();
+                            }
+                        }
+                    </script>
+                    <?php
+                    $ckeditor_preloaded = true;
+                }
+                //TODO implement translatable
+                echo '<div class="wysiwyg"
+                    name="'.$fieldName.'"
+                    style="display: inline-block; outline: dotted 2px grey; min-width: 200px; min-height: 30px; margin: 2px;"
+                    onclick="wysiwyg_CKEditor_inline_edit(this, event);"
+                    onblur="$(this).trigger(\'change\');"
+                    >'.$value.'</div>';
             break;
         }
     }
@@ -421,7 +462,7 @@ class InlineTableEdit {
                     X_tableEditBeforeAjax_FIELDNAME(data, $td) // we may modify data, return false to cancel the ajax request
                     X_tableEditAjaxSuccess_FIELDNAME(response, $td) // return true for success, otherwise its considered a failure, string is an error message
             */
-            $('table.inlineTableEdit').on('change', 'input[name], select[name], textarea[name]', function(){
+            $('table.inlineTableEdit').on('change', 'input[name], select[name], textarea[name], div.wysiwyg', function(){
                 var $input = $(this);
                 if ($input.get(0).tagName == "INPUT" && $input.get(0).type == "file") return;
                 var $td = $input.closest('td');
@@ -431,7 +472,7 @@ class InlineTableEdit {
                     id: $td.attr('data-id'),
                 };
                 $td.find('[name]').each(function(){
-                    var value = $(this).val();
+                    var value = $(this).hasClass('wysiwyg')? $(this).html() : $(this).val();
                     if (this.tagName == "INPUT" && this.type == "checkbox") {
                         value = $(this).prop('checked')? 1:0;
                     }

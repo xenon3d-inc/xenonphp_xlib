@@ -15,6 +15,7 @@ if (!defined('CACHE_PATH')) define('CACHE_PATH', APPLICATION_PATH . 'cache/');
 if (!defined('DATA_PATH')) define('DATA_PATH', APPLICATION_PATH . 'data/');
 if (!defined('CONFIG_PATH')) define('CONFIG_PATH', APPLICATION_PATH . 'config/');
 if (!defined('WIDGET_PATH')) define('WIDGET_PATH', APPLICATION_PATH . 'widget/');
+if (!defined('EMAIL_PATH')) define('EMAIL_PATH', APPLICATION_PATH . 'email/');
 if (!defined('LAYOUT_PATH')) define('LAYOUT_PATH', APPLICATION_PATH . 'layout/');
 if (!defined('UPLOAD_PATH')) define('UPLOAD_PATH', DOCUMENT_ROOT . 'uploads/');
 if (!defined('UPLOAD_URL')) define('UPLOAD_URL', str_replace(DOCUMENT_ROOT, '/', UPLOAD_PATH));
