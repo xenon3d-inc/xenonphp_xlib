@@ -462,50 +462,51 @@ class InlineTableEdit {
                     X_tableEditBeforeAjax_FIELDNAME(data, $td) // we may modify data, return false to cancel the ajax request
                     X_tableEditAjaxSuccess_FIELDNAME(response, $td) // return true for success, otherwise its considered a failure, string is an error message
             */
-            $('table.inlineTableEdit').on('change', 'input[name], select[name], textarea[name], div.wysiwyg', function(){
+            $('.inlineTableEdit').on('change', 'input[name], select[name], textarea[name], .wysiwyg', function(){
+                console.log('triggered');
                 var $input = $(this);
                 if ($input.get(0).tagName == "INPUT" && $input.get(0).type == "file") return;
-                var $td = $input.closest('td');
-                var customBeforeFunc = 'X_tableEditBeforeAjax_'+$td.attr('data-fieldname');
-                var customSuccessFunc = 'X_tableEditAjaxSuccess_'+$td.attr('data-fieldname');
+                var $parent = $input.closest('[data-fieldname]');
+                var customBeforeFunc = 'X_tableEditBeforeAjax_'+$parent.attr('data-fieldname');
+                var customSuccessFunc = 'X_tableEditAjaxSuccess_'+$parent.attr('data-fieldname');
                 var data = {
-                    id: $td.attr('data-id'),
+                    id: $parent.attr('data-id'),
                 };
-                $td.find('[name]').each(function(){
+                $parent.find('[name]').each(function(){
                     var value = $(this).hasClass('wysiwyg')? $(this).html() : $(this).val();
                     if (this.tagName == "INPUT" && this.type == "checkbox") {
                         value = $(this).prop('checked')? 1:0;
                     }
-                    data[$(this).attr('name')/*$td.attr('data-fieldname')*/] = value;
+                    data[$(this).attr('name')/*$parent.attr('data-fieldname')*/] = value;
                 });
                 if (typeof window[customBeforeFunc] === 'function') {
-                    if (window[customBeforeFunc](data, $td) === false) {
+                    if (window[customBeforeFunc](data, $parent) === false) {
                         return;
                     }
                 }
-                $td.attr('status', "saving");
+                $parent.attr('status', "saving");
                 $.ajax({
                     url: '',
                     method: 'post',
                     data: data,
                     success: function(response){
                         if (typeof window[customSuccessFunc] === 'function') {
-                            response = window[customSuccessFunc](response, $td);
+                            response = window[customSuccessFunc](response, $parent);
                         } else {
                             if (response === "OK") {
                                 response = true;
                             }
                         }
                         if (response === true) {
-                            $td.attr('status', "success");
-                            setTimeout(function(){$td.attr('status', "");}, 1000);
+                            $parent.attr('status', "success");
+                            setTimeout(function(){$parent.attr('status', "");}, 1000);
                         } else {
-                            $td.attr('status', "error");
+                            $parent.attr('status', "error");
                             alert(response);
                         }
                     },
                     error: function(response){
-                        $td.attr('status', "error");
+                        $parent.attr('status', "error");
                         alert(response);
                     },
                     complete: function(){
@@ -514,7 +515,7 @@ class InlineTableEdit {
                 });
             });
             // Ajax Delete
-            $('table.inlineTableEdit').on('click', '[data-delete-id]', function(){
+            $('.inlineTableEdit').on('click', '[data-delete-id]', function(){
                 if (confirm("Delete this entry ?")) {
                     $.ajax({
                         url: '',
