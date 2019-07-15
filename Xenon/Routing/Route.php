@@ -288,11 +288,11 @@ class Route {
                 $domain = DOMAIN_NAME;
             } else
             foreach ((array)$r['subdomain'] as $d) {
-                if (DEV && preg_match("#^(".str_replace('.', "\\.", "$d.([a-z0-9.-].)?".str_replace("|","|$d.([a-z0-9.-].)?",DEV_DOMAIN)).")$#i", "$d.".DOMAIN_NAME, $matches)) {
+                if (DEV && preg_match("#^(".str_replace('.', "\\.", "$d.([a-z0-9\\.-]\\.)?".str_replace("|","|$d.([a-z0-9\\.-]\\.)?",DEV_DOMAIN)).")$#i", "$d.".DOMAIN_NAME, $matches)) {
                     $domain = $matches[1];
                     break;
                 } else
-                if (PROD && preg_match("#^(".str_replace('.', "\\.", "$d.([a-z0-9.-].)?".str_replace("|","|$d.([a-z0-9.-].)?",PROD_DOMAIN)).")$#i", "$d.".DOMAIN_NAME, $matches)) {
+                if (PROD && preg_match("#^(".str_replace('.', "\\.", "$d.([a-z0-9\\.-]\\.)?".str_replace("|","|$d.([a-z0-9\\.-]\\.)?",PROD_DOMAIN)).")$#i", "$d.".DOMAIN_NAME, $matches)) {
                     $domain = $matches[1];
                     break;
                 }
