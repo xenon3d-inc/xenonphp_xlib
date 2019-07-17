@@ -69,7 +69,7 @@ class X_BaseAutoload
                     }
                     self::$cachedAutoloadClasses[$className] = $classPath;
                     if ((is_file(self::$AUTOLOAD_CACHE_FILE) && is_writable(self::$AUTOLOAD_CACHE_FILE)) || is_writable(dirname(self::$AUTOLOAD_CACHE_FILE))) {
-                        file_put_contents(self::$AUTOLOAD_CACHE_FILE, json_encode(self::$cachedAutoloadClasses));
+                        file_put_contents(self::$AUTOLOAD_CACHE_FILE, json_encode(self::$cachedAutoloadClasses, JSON_UNESCAPED_UNICODE));
                     }
                 }
                 return;

@@ -20,7 +20,7 @@ function X_get_price($price, $base = null, $format = false) {
         $cache_path = CACHE_PATH."forex_$base.php";
         if (!is_file($cache_path) || !($cachedForex = @file_get_contents($cache_path)) || !($X_FOREX = @json_decode($cachedForex, true)) || $X_FOREX['date'] != date('Y-m-d')) {
             $X_FOREX = X_forex($base);
-            if ($X_FOREX) file_put_contents($cache_path, @json_encode($X_FOREX));
+            if ($X_FOREX) file_put_contents($cache_path, @json_encode($X_FOREX, JSON_UNESCAPED_UNICODE));
         }
     }
     if (!$X_FOREX) return ($format) ? $price . " " . $base : $price;

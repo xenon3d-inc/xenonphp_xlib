@@ -500,7 +500,7 @@ class Model
                 }
             }
         }
-        return json_encode($dbValue);
+        return json_encode($dbValue, JSON_UNESCAPED_UNICODE);
     }
 
 
@@ -552,7 +552,7 @@ class Model
         return json_decode($value, true);
     }
     public static function handler_set_json($value, Schema\Column $column) {
-        return json_encode($value);
+        return json_encode($value, JSON_UNESCAPED_UNICODE);
     }
 
     // id
