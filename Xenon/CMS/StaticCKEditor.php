@@ -239,6 +239,9 @@ class StaticCKEditor {
                                 // { name: 'others' },
                                 // { name: 'about' }
                             ],
+                            autoParagraph: false,
+                            enterMode : CKEDITOR.ENTER_BR,
+                            shiftEnterMode: CKEDITOR.ENTER_BR,
                             filebrowserImageUploadUrl: '?uploadImage=<?=urlencode($this->imageProcessorParams)?>',
                             filebrowserImageBrowseUrl: '?browseImage=<?=urlencode($this->imageProcessorParams)?>'
                         });
