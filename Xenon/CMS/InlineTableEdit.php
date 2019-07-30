@@ -17,7 +17,7 @@ class InlineTableEdit {
         die($error?$error:"OK");
     }
 
-    public function loadData($source = false, $orderBy = 'id ASC') {
+    public function loadData($source = false, $orderBy = 'id ASC', $filters = null) {
         if ($source === false) $source = $this->source;
         if ($source === null) return $this;
         switch (gettype($source)) {
@@ -27,6 +27,17 @@ class InlineTableEdit {
                         case 'Xenon\Db\Model':
                             $source = $this->source;
                             $query = $source::select();
+                            if ($filters) {
+                                if (!($filters instanceof \Xenon\Db\Query\Helper\Where)) {
+                                    $where = new \Xenon\Db\Query\Helper\Where($source);
+                                    foreach ((array)$filters as $key => $value) {
+                                        if (is_numeric($key)) $where->andWhere($source, $value);
+                                        else $where->andWhere($source, $key, $value);
+                                    }
+                                    $filters = $where;
+                                }
+                                $query->where($filters);
+                            }
                             $query->orderBy($orderBy);
                             $this->data = [
                                 'query' => "$query",
@@ -36,7 +47,7 @@ class InlineTableEdit {
                             return $this;
                         //TODO handle more class types
                         default:
-                            return $this->loadData(get_parent_class($source), $orderBy);
+                            return $this->loadData(get_parent_class($source), $orderBy, $filters);
                     }
                 } else {
                     //TODO handle more string source types
@@ -144,6 +155,33 @@ class InlineTableEdit {
         $this->data['properties']['fields'][$fieldName]['options'] = $options;
     }
 
+    public static function outputObjectArrayField($name, $structure, $val, $nbFields = 1) {
+        switch (gettype($structure)) {
+            case 'string':
+                switch ($structure) {
+                    default:
+                        ?>
+                        <input type="<?=$structure!==''?$structure:'text'?>" name="<?=$name?>" value="<?=$val?>" autocomplete="false_<?=$name?>" data-nbfields="<?=$nbFields?>">
+                        <?php
+                    break;
+                    case 'textarea':
+                        ?>
+                        <textarea name="<?=$name?>" autocomplete="false_<?=$name?>" data-nbfields="<?=$nbFields?>"><?=$val?></textarea>
+                        <?php
+                    break;
+                }
+            break;
+            case 'NULL':
+                self::outputObjectArrayField($name, '', $val);
+            break;
+            case 'array':
+                foreach ($structure as $key=>$type) {
+                    self::outputObjectArrayField($name."[$key]", $type, $val[$key], count($structure));
+                }
+            break;
+        }
+    }
+
     public function generateField($row, $fieldName, $prop = null) {
         if ($prop === null) $prop = $this->data['properties']['fields'][$fieldName];
         $type = isset($prop['attributes']['type'])? $prop['attributes']['type'] : $prop['type'];
@@ -152,6 +190,7 @@ class InlineTableEdit {
             $value = strip_tags($value);
         }
         $readonly = !empty($prop['attributes']['readonly'])? ' readonly ':'';
+        $required = ((isset($prop['attributes']['required']) || $prop['null'] === false) && !$readonly)? ' required ':'';
         if ($type == 'tinyint' && $prop['handler'] == 'bool') {
             $type = 'bool';
         } else if ($type == 'varchar' && $prop['handler'] == 'enum') {
@@ -164,20 +203,30 @@ class InlineTableEdit {
             }
         } else if ($type == 'int' && ($prop['handler'] == 'manytoone' || $prop['handler'] == 'onetoone')) {
             $type = 'select';
+        } else if ($type == 'text' && $prop['handler'] == 'array') {
+            $type = 'array';
+        } else if ($type == 'text' && $prop['handler'] == 'object') {
+            $type = 'object';
+        }
+        if (isset($prop['attributes']['checkbox'])) {
+            ?>
+            <input type="checkbox" class="checkboxToActivateField" name="<?=$fieldName?>" value="" onchange="$(this).next().find('input,textarea').prop('disabled', !$(this).prop('checked'));" <?=$value?'checked':''?>>
+            <div>
+            <?php
         }
         switch ($type) {
             case 'varchar':
                 //TODO implement translatable
-                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" maxlength="'.$prop['length'].'" '.$readonly.' />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" maxlength="'.$prop['length'].'" '.$readonly.$required.' />';
             break;
             case 'email':
-                echo '<input type="email" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.' />';
+                echo '<input type="email" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.$required.' />';
             break;
             case 'phone':
-                echo '<input type="phone" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.' />';
+                echo '<input type="phone" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.$required.' />';
             break;
             case 'decimal':
-                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" step="'.(1.0/pow(10, (int)preg_replace("#\d+,\s*(\d+)#","$1",$prop['length']))).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.' />';
+                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" step="'.(1.0/pow(10, (int)preg_replace("#\d+,\s*(\d+)#","$1",$prop['length']))).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.$required.' />';
             break;
             case 'int':
             case 'tinyint':
@@ -185,19 +234,19 @@ class InlineTableEdit {
             case 'mediumint':
             case 'bigint':
             case 'number':
-                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.' />';
+                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.$required.' />';
             break;
             case 'password':
-                echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" '.$readonly.' />';
+                echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" '.$readonly.$required.' />';
             break;
             case 'date':
-                echo '<input type="date" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d'):'').'" '.$readonly.' />';
+                echo '<input type="date" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d'):'').'" '.$readonly.$required.' />';
             break;
             case 'timestamp':
-                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.' />';
+                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.$required.' />';
             break;
             case 'bool':
-                echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' '.$readonly.' />';
+                echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' '.$readonly.$required.' />';
             break;
             case 'image_upload':
                 if ($readonly) {
@@ -207,7 +256,7 @@ class InlineTableEdit {
                 }
             break;
             case 'select':
-                echo '<select name="'.$fieldName.'" '.$readonly.' >';
+                echo '<select name="'.$fieldName.'" '.$readonly.$required.'>';
                 if (($value == '' && $row['id'] != '_NEW_') || $prop['null']) echo '<option></option>';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
                     $option_labelField = @$prop['attributes']['options_label'];
@@ -217,7 +266,7 @@ class InlineTableEdit {
                 echo '</select>';
             break;
             case 'lang':
-                echo '<select name="'.$fieldName.'" '.$readonly.' >';
+                echo '<select name="'.$fieldName.'" '.$readonly.$required.'>';
                 if ($value == '' && $row['id'] != '_NEW_') echo '<option></option>';
                 foreach (explode('|', LANGS) as $lang) {
                     echo '<option '.($value == $lang ? 'selected':'').' value="'.$lang.'">'.$lang.'</option>';
@@ -226,7 +275,28 @@ class InlineTableEdit {
             break;
             case 'text':
                 //TODO implement translatable
-                echo '<textarea name="'.$fieldName.'" '.$readonly.' >'.$value.'</textarea>';
+                echo '<textarea name="'.$fieldName.'" '.$readonly.$required.'>'.$value.'</textarea>';
+            break;
+            case 'array':
+                ?>
+                <input type="hidden" name="<?=$fieldName?>" value="">
+                <?php
+                if ($value) foreach ((array)$value as $i=>$val) {
+                    ?>
+                    <div data-i="<?=$i?>">
+                        <?php
+                        self::outputObjectArrayField($fieldName."[$i]", $prop['structure'], $val);
+                        ?>
+                        <i onclick="X_inlineTableEdit_removeArrayElement('<?=$fieldName?>', $(this))" class="fas fa-times"></i>
+                    </div>
+                    <?php
+                }
+                ?>
+                <a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=str_replace('"', "'", json_encode($prop['structure']))?>, $(this))"><i class="fas fa-plus"></i></a>
+                <?php
+            break;
+            case 'object':
+                self::outputObjectArrayField($fieldName, $prop['structure'], $value);
             break;
             case 'wysiwyg':
                 static $ckeditor_preloaded = false;
@@ -270,9 +340,12 @@ class InlineTableEdit {
                     >'.$value.'</div>';
             break;
         }
+        if (isset($prop['attributes']['checkbox'])) {
+            echo "</div>";
+        }
     }
 
-    public function generateAddForm(array $row = [], array $customFunctions = []/* array of field => function(value, row, prop) */) {
+    public function generateAddForm(array $customFunctions = []/* array of field => function(value, row, prop) */, array $row = []) {
         $row['id'] = '_NEW_';
         echo '<form class="inlineEditTable_add" autocomplete="off">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
@@ -331,6 +404,38 @@ class InlineTableEdit {
                 height: 30px;
                 margin: 20px auto;
                 border: solid 1px #aaa;
+            }
+            form.inlineEditTable_add div[data-i] {
+                min-width: 200px;
+                width: 100%;
+                clear: both;
+            }
+            form.inlineEditTable_add div[data-i] > input {
+                min-width: initial;
+                width: 90%;
+                float: left;
+            }
+            form.inlineEditTable_add div[data-i] > input:nth-child(1) {
+                clear: both;
+            }
+            form.inlineEditTable_add div[data-i] > input[data-nbfields="2"] {
+                width: 46%;
+            }
+            form.inlineEditTable_add div[data-i] i.fa-times {
+                width: 5%;
+                float: left;
+                padding: 5px;
+            }
+            form.inlineEditTable_add a.add {
+                display: inline-block;
+                clear: both;
+                padding: 10px 20px;
+                margin: 5px;
+                border-radius: 5px;
+                background-color: #ccc;
+            }
+            form.inlineEditTable_add input.checkboxToActivateField:not(:checked) + div {
+                display: none;
             }
         </style>
         <script>
@@ -454,6 +559,39 @@ class InlineTableEdit {
             table.inlineTableEdit td[status=""] {
                 transition: background-color 1000ms;
             }
+            table.inlineTableEdit td div[data-i] {
+                min-width: 200px;
+                width: 100%;
+                clear: both;
+            }
+            table.inlineTableEdit td div[data-i] > input {
+                min-width: initial;
+                width: 90%;
+                float: left;
+            }
+            table.inlineTableEdit td div[data-i] > input:nth-child(1) {
+                clear: both;
+            }
+            table.inlineTableEdit td div[data-i] > input[data-nbfields="2"] {
+                width: 46%;
+            }
+            table.inlineTableEdit td div[data-i] i.fa-times {
+                width: 5%;
+                float: left;
+                padding: 5px;
+                line-height: 50px;
+            }
+            table.inlineTableEdit a.add {
+                display: inline-block;
+                clear: both;
+                padding: 10px 20px;
+                margin: 5px;
+                border-radius: 5px;
+                background-color: #ccc;
+            }
+            table.inlineTableEdit td input.checkboxToActivateField:not(:checked) + div {
+                display: none;
+            }
         </style>
         <script>
             // Ajax Auto Save
@@ -462,57 +600,66 @@ class InlineTableEdit {
                     X_tableEditBeforeAjax_FIELDNAME(data, $td) // we may modify data, return false to cancel the ajax request
                     X_tableEditAjaxSuccess_FIELDNAME(response, $td) // return true for success, otherwise its considered a failure, string is an error message
             */
-            $('.inlineTableEdit').on('change', 'input[name], select[name], textarea[name], .wysiwyg', function(){
-                console.log('triggered');
+            $('.inlineTableEdit').on('change.autosave', 'input[name], select[name], textarea[name], .wysiwyg', function(){
+                console.log('triggered autosave');
                 var $input = $(this);
-                if ($input.get(0).tagName == "INPUT" && $input.get(0).type == "file") return;
-                var $parent = $input.closest('[data-fieldname]');
-                var customBeforeFunc = 'X_tableEditBeforeAjax_'+$parent.attr('data-fieldname');
-                var customSuccessFunc = 'X_tableEditAjaxSuccess_'+$parent.attr('data-fieldname');
-                var data = {
-                    id: $parent.attr('data-id'),
-                };
-                $parent.find('[name]').each(function(){
-                    var value = $(this).hasClass('wysiwyg')? $(this).html() : $(this).val();
-                    if (this.tagName == "INPUT" && this.type == "checkbox") {
-                        value = $(this).prop('checked')? 1:0;
-                    }
-                    data[$(this).attr('name')/*$parent.attr('data-fieldname')*/] = value;
-                });
-                if (typeof window[customBeforeFunc] === 'function') {
-                    if (window[customBeforeFunc](data, $parent) === false) {
-                        return;
-                    }
-                }
-                $parent.attr('status', "saving");
-                $.ajax({
-                    url: '',
-                    method: 'post',
-                    data: data,
-                    success: function(response){
-                        if (typeof window[customSuccessFunc] === 'function') {
-                            response = window[customSuccessFunc](response, $parent);
-                        } else {
-                            if (response === "OK") {
-                                response = true;
-                            }
+                var autoSaveAction = function(){
+                    if ($input.get(0).tagName == "INPUT" && $input.get(0).type == "file") return;
+                    var $parent = $input.closest('[data-fieldname]');
+                    var customBeforeFunc = 'X_tableEditBeforeAjax_'+$parent.attr('data-fieldname');
+                    var customSuccessFunc = 'X_tableEditAjaxSuccess_'+$parent.attr('data-fieldname');
+                    var data = {
+                        id: $parent.attr('data-id'),
+                    };
+                    $parent.find('[name]').each(function(){
+                        var value = $(this).hasClass('wysiwyg')? $(this).html() : $(this).val();
+                        if (this.tagName == "INPUT" && this.type == "checkbox") {
+                            value = $(this).prop('checked')? 1:0;
                         }
-                        if (response === true) {
-                            $parent.attr('status', "success");
-                            setTimeout(function(){$parent.attr('status', "");}, 1000);
-                        } else {
+                        if (typeof value === 'object' && Object.keys(value).length == 0) value = "";
+                        if (typeof value === 'undefined') value = "";
+                        if (!$(this).prop('disabled')) data[$(this).attr('name')] = value;
+                    });
+                    if (typeof window[customBeforeFunc] === 'function') {
+                        if (window[customBeforeFunc](data, $parent) === false) {
+                            return;
+                        }
+                    }
+                    $parent.attr('status', "saving");
+                    $.ajax({
+                        url: '',
+                        method: 'post',
+                        data: data,
+                        success: function(response){
+                            if (typeof window[customSuccessFunc] === 'function') {
+                                response = window[customSuccessFunc](response, $parent);
+                            } else {
+                                if (response === "OK") {
+                                    response = true;
+                                }
+                            }
+                            if (response === true) {
+                                $parent.attr('status', "success");
+                                setTimeout(function(){$parent.attr('status', "");}, 1000);
+                            } else {
+                                $parent.attr('status', "error");
+                                alert(response);
+                            }
+                        },
+                        error: function(response){
                             $parent.attr('status', "error");
                             alert(response);
-                        }
-                    },
-                    error: function(response){
-                        $parent.attr('status', "error");
-                        alert(response);
-                    },
-                    complete: function(){
+                        },
+                        complete: function(){
 
-                    }
-                });
+                        }
+                    });
+                };
+                if ($input.is('[delayed]')) {
+                    setTimeout(autoSaveAction, +$input.attr('delayed'));
+                } else {
+                    autoSaveAction();
+                }
             });
             // Ajax Delete
             $('.inlineTableEdit').on('click', '[data-delete-id]', function(){
@@ -533,6 +680,68 @@ class InlineTableEdit {
                     });
                 }
             });
+
+            function X_inlineTableEdit_removeArrayElement(fieldName, $elem) {
+                var $td = $elem.closest('td');
+                $elem.closest('div').remove();
+                if ($td.length) {
+                    $td.find('input[name="'+fieldName+'"]').trigger('change.autosave');
+                }
+            }
+
+            function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem) {
+                var $parent = $elem.parent();
+                var nextIndex = 0;
+                $parent.find('div[data-i]').each(function(){
+                    var i = +$(this).attr('data-i');
+                    if (i >= nextIndex) {
+                        nextIndex = i+1;
+                    }
+                });
+                var $div = $('<div>').attr('data-i', nextIndex).insertBefore($elem);
+
+                var appendField = function(name, structure, nbfields) {
+                    nbfields = nbfields || 1;
+                    switch (typeof structure) {
+                        case 'string':
+                            switch (structure) {
+                                default:
+                                    $('<input>').appendTo($div)
+                                        .attr('type', structure || 'text')
+                                        .attr('name', name)
+                                        .attr('data-nbfields', nbfields)
+                                        .attr('autocomplete', 'false_'+name.replace(/\]\[/g, '_'))
+                                        .attr('value', '')
+                                    ;
+                                break;
+                                case 'textarea':
+                                    $('<textarea>').appendTo($div)
+                                        .attr('name', name)
+                                        .attr('data-nbfields', nbfields)
+                                        .attr('autocomplete', 'false_'+name.replace(/\]\[/g, '_'))
+                                    ;
+                                break;
+                            }
+                        break;
+                        case 'object':
+                            if (structure === null) {
+                                appendField(name, '');
+                            } else {
+                                for (var i in structure) {
+                                    appendField(name+'['+i+']', structure[i], Object.keys(structure).length);
+                                }
+                            }
+                        break;
+                    }
+                };
+                appendField(fieldName+'['+nextIndex+']', structure);
+
+                $div.find('input').get(0).focus();
+                $('<i>').attr('class', 'fas fa-times').on('click', function(){
+                    X_inlineTableEdit_removeArrayElement(fieldName, $(this));
+                }).appendTo($div);
+            }
+
         </script>
         <?php
     }

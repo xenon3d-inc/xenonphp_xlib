@@ -35,6 +35,7 @@ class Column
     protected $translatable = false; // BOOL | empty=true | unset=false
     protected $key = 'id'; // STRING  the field name to use as the key for xToMany arrays
     protected $value = null; // STRING  the field name to use as the value for xToMany arrays (null to use the entire object)
+    protected $structure = null; // JSON-decoded object (can be anything, depending on type)
 
     protected $attributes = []; // User-defined attributes (used with InlineTableEdit), keys starting with underscode in meta (@_attrname)
                                 // label, readonly, options_label, type, strip_tags, ...
@@ -227,11 +228,22 @@ class Column
             $this->handler = 'bool';
             return;
         }
-        // Array, Object, Json
-        if (preg_match("#^(array|object|json)$#i", $value)) {
+        // Json
+        if (preg_match("#^(json)$#i", $value)) {
             $this->type = 'text';
             $this->length = null;
             $this->handler = 'json';
+            return;
+        }
+        // Array or Object
+        if (preg_match("#^(array|object)\s*\((.*)\)$#i", $value, $matches) || preg_match("#^(array|object)\s*(.*)$#i", $value, $matches)) {
+            $this->type = 'text';
+            $this->length = null;
+            $this->handler = $matches[1];
+            $this->structure = json_decode($matches[2], true);
+            if ($this->structure === null && !empty($matches[2])) {
+                $this->structure = "$matches[2]";
+            }
             return;
         }
         // ENUM

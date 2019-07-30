@@ -95,6 +95,7 @@ class Model
                 'column' => $columnData->column,
                 'type' => $columnData->type,
                 'handler' => $columnData->handler,
+                'structure' => $columnData->structure,
                 'null' => $columnData->null,
                 // 'columnData' => $columnData,
                 'enum' => $columnData->enum,
@@ -109,7 +110,10 @@ class Model
             ];
             $xToOne = $columnData->manytoone? $columnData->manytoone : $columnData->onetoone;
             if ($fetchXToOneOptions && $xToOne) {
-                $properties['fields'][$fieldName]['options'] = $xToOne['model']::select()->fetchAll($xToOne['field']);
+                $query = $xToOne['model']::select();
+                if ($columnData->filter) $query->where(new Expr($columnData->filter));
+                if ($columnData->sort) $query->orderBy($columnData->sort);
+                $properties['fields'][$fieldName]['options'] = $query->fetchAll($xToOne['field']);
             }
         }
         return $properties;
@@ -132,6 +136,7 @@ class Model
                     'rawvalue' => @$this->_original_values[$columnName],
                     'type' => $columnData->type,
                     'handler' => $columnData->handler,
+                    'structure' => $columnData->structure,
                     'null' => $columnData->null,
                     // 'columnData' => $columnData,
                     'enum' => $columnData->enum,
@@ -552,6 +557,24 @@ class Model
         return json_decode($value, true);
     }
     public static function handler_set_json($value, Schema\Column $column) {
+        return json_encode($value, JSON_UNESCAPED_UNICODE);
+    }
+    // array
+    public static function handler_get_array($value, Schema\Column $column) {
+        if (!is_array($value) && !$value) return [];
+        return json_decode($value, true);
+    }
+    public static function handler_set_array($value, Schema\Column $column) {
+        if (!is_array($value) && !$value) $value = [];
+        return json_encode($value, JSON_UNESCAPED_UNICODE);
+    }
+    // object
+    public static function handler_get_object($value, Schema\Column $column) {
+        if (!is_array($value) && !$value) return null;
+        return json_decode($value, true);
+    }
+    public static function handler_set_object($value, Schema\Column $column) {
+        if (!is_array($value) && !$value) return null;
         return json_encode($value, JSON_UNESCAPED_UNICODE);
     }
 
