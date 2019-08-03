@@ -232,6 +232,10 @@ class Model
         return new Query\SelectForUpdate(get_called_class(), ...$args);
     }
 
+    public static function selectCount($fields = "*") {
+        return new Query\Select(get_called_class(), "COUNT($fields) AS 'COUNT'");
+    }
+
     public static function query($queryExpr, ...$args) {
         return new Query(new Query\Helper\Expr($queryExpr, get_called_class(), ...$args));
     }
@@ -241,14 +245,15 @@ class Model
     }
 
     public function count($fieldName = null, $where = null, $distinct = null) {
-        if ($fieldName) {
-            $column = $this->_modelData->getField($fieldName);
+        if ($fieldName && ($column = $this->_modelData->getField($fieldName))) {
             // OneToMany
-            if ($column && $column->onetomany && ($foreignColumn = (new Schema\ModelData)->get($column->onetomany['model'])->getField($column->onetomany['field'])) && $foreignColumn->manytoone) {
-                $query = (new Query\Select($column->onetomany['model'], ['COUNT' => new Expr("COUNT(".($distinct? "DISTINCT($distinct)" : "*").")")]))
-                    ->where($column->onetomany['field'], $this->{$foreignColumn->manytoone['field']});
-                if ($where !== null) $query->andWhere($where);
-                return $query->fetchCount();
+            if ($column->onetomany) {
+                if (($foreignColumn = (new Schema\ModelData)->get($column->onetomany['model'])->getField($column->onetomany['field'])) && $foreignColumn->manytoone) {
+                    $query = (new Query\Select($column->onetomany['model'], ['COUNT' => new Expr("COUNT(".($distinct? "DISTINCT($distinct)" : "*").")")]))
+                        ->where($column->onetomany['field'], $this->{$foreignColumn->manytoone['field']});
+                    if ($where !== null) $query->andWhere($where);
+                    return $query->fetchCount();
+                }
             }
         }
     }
