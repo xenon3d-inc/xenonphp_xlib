@@ -7,6 +7,7 @@ use \Xenon\Db\Database;
 class Where {
     public $model = "";
     protected $where = "";
+    public $orderByPriority = [];
     
     /**
      * Typical args : 
@@ -81,6 +82,7 @@ class Where {
     protected function addWhere(Where $where, $op = 'AND') {
         if ($this->where !== '') $this->where .= " $op ";
         $this->where .= $where;
+        $this->orderByPriority["$where"] = "DESC";
     }
     
     public function __toString() {

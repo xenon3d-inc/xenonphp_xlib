@@ -17,7 +17,34 @@ class InlineTableEdit {
         die($error?$error:"OK");
     }
 
-    public function loadData($source = false, $orderBy = 'id ASC', $filters = null) {
+    public function loadProperties($source = false) {
+        if ($source === false) $source = $this->source;
+        if ($source === null) return $this;
+        switch (gettype($source)) {
+            case "string":
+                if (class_exists($source)) {
+                    switch ($source) {
+                        case 'Xenon\Db\Model':
+                            $source = $this->source;
+                            $this->data = [
+                                'query' => null,
+                                'properties' => $source::getProperties(true),
+                                'rows' => [],
+                            ];
+                            return $this;
+                        //TODO handle more class types
+                        default:
+                            return $this->loadProperties(get_parent_class($source));
+                    }
+                } else {
+                    //TODO handle more string source types
+                }
+            break;
+            //TODO handle more source types
+        }
+    }
+
+    public function loadData($source = false, $orderBy = 'id ASC', $filters = null, $limit = 0, $offset = null) {
         if ($source === false) $source = $this->source;
         if ($source === null) return $this;
         switch (gettype($source)) {
@@ -44,10 +71,13 @@ class InlineTableEdit {
                                 'properties' => $source::getProperties(true),
                                 'rows' => $query->fetchAllTableArray(),
                             ];
+                            if ($limit || $offset) {
+                                $query->limit($limit, $offset);
+                            }
                             return $this;
                         //TODO handle more class types
                         default:
-                            return $this->loadData(get_parent_class($source), $orderBy, $filters);
+                            return $this->loadData(get_parent_class($source), $orderBy, $filters, $limit, $offset);
                     }
                 } else {
                     //TODO handle more string source types
