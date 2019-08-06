@@ -44,6 +44,10 @@ class InlineTableEdit {
         }
     }
 
+    public function containsData() {
+        return !empty($this->data['rows']);
+    }
+
     public function loadData($source = false, $orderBy = 'id ASC', $filters = null, $limit = 0, $offset = null) {
         if ($source === false) $source = $this->source;
         if ($source === null) return $this;
