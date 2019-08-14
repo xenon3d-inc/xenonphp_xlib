@@ -383,7 +383,7 @@ class InlineTableEdit {
         $row['id'] = '_NEW_';
         echo '<form class="inlineEditTable_add" autocomplete="off">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
-        foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes'] && empty($prop['attributes']['readonly'])) {
+        foreach ($this->data['properties']['fields'] as $fieldName => $prop) if (!empty($prop['column']) && $prop['attributes'] && empty($prop['attributes']['readonly'])) {
             echo '<label data-fieldname="'.$fieldName.'">';
             echo '<strong>';
             echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
