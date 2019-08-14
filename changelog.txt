@@ -1,7 +1,9 @@
-0.8.0 - 2019-08-05
+0.8.0 - 2019-08-14
     Improved Xenon\CMS\InlineTableEdit (potentially breaking changes)
         added arrays and objects
+        added more supported attributes
     Improvements in Xenon\Db\Model
+        Including the implementation of ArrayAccess
     WIP console method for command line routing
     Improved ImageProcessor template (added jpegoptim)
     BugFix in viewport template

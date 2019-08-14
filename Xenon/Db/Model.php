@@ -5,7 +5,7 @@ namespace Xenon\Db;
 use \Xenon\Db\Query\Helper\Expr;
 use \Xenon\Db\Query\Helper\Field;
 
-class Model
+class Model implements \ArrayAccess
 {
 
     public $_isnew = null;
@@ -711,5 +711,24 @@ class Model
         }
     }
 
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // ArrayAccess stuff...
+
+    public function offsetGet($offset) {
+        return $this->get($offset);
+    }
+
+    public function offsetSet($offset, $value) {
+        $this->set($offset, $value);
+    }
+
+    public function offsetExists($offset) {
+        return !empty($this->_modelData->getFieldOrColumn($offset));
+    }
+
+    public function offsetUnset($offset) {
+        $this->set($offset, null);
+    }
 
 }

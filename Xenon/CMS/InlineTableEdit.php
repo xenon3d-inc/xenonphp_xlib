@@ -10,7 +10,7 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop) */) {
+    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop &data) */) {
         if (!AJAX) return $this;
         if (($upload = X_upload())) die($upload);
         $this->saveData($_POST, $error, false, $customFunctions);
@@ -92,7 +92,7 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function(value, row, prop) */) {
+    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function(value, row, prop, &data) */) {
         if ($source === false) $source = $this->source;
         if ($source === null) {
             $error = "Source Error";
@@ -110,18 +110,20 @@ class InlineTableEdit {
                                     // Create New Entry
                                     unset($values['id']);
                                     $data = [];
+                                    $returnedData = [];
                                     foreach ($values as $key => $value) {
                                         $prop = $properties['fields'][$key];
                                         //TODO validate some things like attributes from $prop...
                                         if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
-                                            $data[$key] = $customFunctions[$key]($value, $values, $prop);
+                                            $returnedData[$key] = $customFunctions[$key]($value, $values, $prop, $data);
                                         } else {
                                             if (isset($prop['attributes']['strip_tags'])) {
                                                 $value = strip_tags($value);
                                             }
-                                            $data[$key] = $value;
+                                            $returnedData[$key] = $value;
                                         }
                                     }
+                                    $data += $returnedData;
                                     try {
                                         $row = new $source($data);
                                         //TODO other stuff ?
@@ -150,14 +152,18 @@ class InlineTableEdit {
                                         } else {
                                             // Edit Entry
                                             try {
+                                                $data = [];
                                                 foreach ($values as $key => $value) {
                                                     $prop = $properties['fields'][$key];
                                                     //TODO validate some things like attributes from $prop...
                                                     if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
-                                                        $row->set($key, $customFunctions[$key]($value, $row, $prop), false);
+                                                        $row->set($key, $customFunctions[$key]($value, $row, $prop, $data), false);
                                                     } else {
                                                         $row->set($key, $value, false);
                                                     }
+                                                }
+                                                foreach ($data as $key => $val) {
+                                                    $row->set($key, $val);
                                                 }
                                                 $row->save();
                                             } catch(Exception $e) {
@@ -216,14 +222,14 @@ class InlineTableEdit {
         }
     }
 
-    public function generateField($row, $fieldName, $prop = null) {
+    public function generateField($row, $fieldName, $prop = null, $isAddForm = false) {
         if ($prop === null) $prop = $this->data['properties']['fields'][$fieldName];
         $type = isset($prop['attributes']['type'])? $prop['attributes']['type'] : $prop['type'];
         $value = @$row[$fieldName];
         if (isset($prop['attributes']['strip_tags'])) {
             $value = strip_tags($value);
         }
-        $readonly = !empty($prop['attributes']['readonly'])? ' readonly ':'';
+        $readonly = (isset($prop['attributes']['readonly']) || (!$isAddForm && isset($prop['attributes']['createonly'])))? ' readonly ':'';
         $required = ((isset($prop['attributes']['required']) || $prop['null'] === false) && !$readonly)? ' required ':'';
         if ($type == 'tinyint' && $prop['handler'] == 'bool') {
             $type = 'bool';
@@ -379,7 +385,7 @@ class InlineTableEdit {
         }
     }
 
-    public function generateAddForm(array $customFunctions = []/* array of field => function(value, row, prop) */, array $row = []) {
+    public function generateAddForm(array $customFunctions = []/* array of field => function(value, row, prop, isAddForm) */, array $row = []) {
         $row['id'] = '_NEW_';
         echo '<form class="inlineEditTable_add" autocomplete="off">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
@@ -389,9 +395,9 @@ class InlineTableEdit {
             echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
             echo '</strong>';
             if (isset($customFunctions[$fieldName]) && is_callable($customFunctions[$fieldName])) {
-                $customFunctions[$fieldName](@$row[$fieldName], $row, $prop);
+                $customFunctions[$fieldName](@$row[$fieldName], $row, $prop, true);
             } else {
-                $this->generateField($row, $fieldName, $prop);
+                $this->generateField($row, $fieldName, $prop, true);
             }
             echo '</label>';
         }
@@ -495,7 +501,7 @@ class InlineTableEdit {
         <?php
     }
 
-    public function generateTable(array $customFunctions = []/* array of field => function(value, row, prop) */) {
+    public function generateTable(array $customFunctions = []/* array of field => function(value, row, prop, isAddForm) */) {
         X_js(XLIB_PATH.'helpers/ajaxUpload.js');
         echo '<table class="inlineTableEdit">';
         echo '<thead>';
@@ -520,9 +526,9 @@ class InlineTableEdit {
             foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
                 echo '<td data-id="'.$id.'" data-fieldname="'.$fieldName.'">';
                 if (isset($customFunctions[$fieldName]) && is_callable($customFunctions[$fieldName])) {
-                    $customFunctions[$fieldName](@$row[$fieldName], $row, $prop);
+                    $customFunctions[$fieldName](@$row[$fieldName], $row, $prop, false);
                 } else {
-                    $this->generateField($row, $fieldName, $prop);
+                    $this->generateField($row, $fieldName, $prop, false);
                 }
                 echo '</td>';
             }

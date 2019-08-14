@@ -37,8 +37,11 @@ class Column
     protected $value = null; // STRING  the field name to use as the value for xToMany arrays (null to use the entire object)
     protected $structure = null; // JSON-decoded object (can be anything, depending on type)
 
-    protected $attributes = []; // User-defined attributes (used with InlineTableEdit), keys starting with underscode in meta (@_attrname)
-                                // label, readonly, options_label, type, strip_tags, ...
+    protected $attributes = []; // User-defined attributes (used especially with InlineTableEdit), attrs starting with underscode in meta (@_attrname)
+                                //      label, readonly, createonly, required, options_label, type, strip_tags, checkbox, ...
+                                // Attribute's value is TRUE if no value is specified
+                                // The type attribute overrides the column's type and can be anything, including : 
+                                //      bool, select, varchar, email, phone, decimal, number, password, date, timestamp, lang, text, wysiwyg
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
