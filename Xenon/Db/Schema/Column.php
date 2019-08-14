@@ -38,7 +38,7 @@ class Column
     protected $structure = null; // JSON-decoded object (can be anything, depending on type)
 
     protected $attributes = []; // User-defined attributes (used especially with InlineTableEdit), attrs starting with underscode in meta (@_attrname)
-                                //      label, readonly, createonly, required, options_label, type, strip_tags, checkbox, ...
+                                //      label, hint, readonly, createonly, required, options_label, type, strip_tags, checkbox, ...
                                 // Attribute's value is TRUE if no value is specified
                                 // The type attribute overrides the column's type and can be anything, including : 
                                 //      bool, select, varchar, email, phone, decimal, number, password, date, timestamp, lang, text, wysiwyg

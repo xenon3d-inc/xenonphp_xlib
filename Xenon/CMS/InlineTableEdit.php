@@ -385,12 +385,16 @@ class InlineTableEdit {
         }
     }
 
-    public function generateAddForm(array $customFunctions = []/* array of field => function(value, row, prop, isAddForm) */, array $row = []) {
+    public function generateAddForm(array $customFunctions = []/* array of field => function(value, row, prop, isAddForm)  OR  field => false */, array $row = []) {
         $row['id'] = '_NEW_';
         echo '<form class="inlineEditTable_add" autocomplete="off">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
         foreach ($this->data['properties']['fields'] as $fieldName => $prop) if (!empty($prop['column']) && $prop['attributes'] && empty($prop['attributes']['readonly'])) {
-            echo '<label data-fieldname="'.$fieldName.'">';
+            if (isset($customFunctions[$fieldName]) && $customFunctions[$fieldName] === false) {
+                continue;
+            }
+            $hint = (isset($prop['attributes']['hint']))? 'title="'.htmlentities($prop['attributes']['hint']).'"' : '';
+            echo '<label data-fieldname="'.$fieldName.'" '.$hint.'>';
             echo '<strong>';
             echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
             echo '</strong>';
@@ -510,7 +514,11 @@ class InlineTableEdit {
             echo 'ID / Delete';
             echo '</th>';
             foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
-                echo '<th data-fieldname="'.$fieldName.'">';
+                if (isset($customFunctions[$fieldName]) && $customFunctions[$fieldName] === false) {
+                    continue;
+                }
+                $hint = (isset($prop['attributes']['hint']))? 'title="'.htmlentities($prop['attributes']['hint']).'"' : '';
+                echo '<th data-fieldname="'.$fieldName.'" '.$hint.'>';
                 echo isset($prop['attributes']['label'])? $prop['attributes']['label'] : ucfirst(str_replace('_', ' ', $fieldName));
                 echo '</th>';
             }
@@ -524,7 +532,11 @@ class InlineTableEdit {
             echo '<i class="fas fa-times" data-delete-id="'.$id.'"></i>';
             echo '</td>';
             foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
-                echo '<td data-id="'.$id.'" data-fieldname="'.$fieldName.'">';
+                if (isset($customFunctions[$fieldName]) && $customFunctions[$fieldName] === false) {
+                    continue;
+                }
+                $hint = (isset($prop['attributes']['hint']))? 'title="'.htmlentities($prop['attributes']['hint']).'"' : '';
+                echo '<td data-id="'.$id.'" data-fieldname="'.$fieldName.'" '.$hint.'>';
                 if (isset($customFunctions[$fieldName]) && is_callable($customFunctions[$fieldName])) {
                     $customFunctions[$fieldName](@$row[$fieldName], $row, $prop, false);
                 } else {
