@@ -414,8 +414,7 @@ class Model implements \ArrayAccess
                 $columnName = $columnData->column;
                 // If we are setting the column name and its different than the field name, set the raw value directly into the database
                 if ($fieldName != $columnName && $name == $columnName) {
-                    $this->$columnName = $value;
-                    return;
+                    return $this->$columnName = $value;
                 }
                 $handler_func = "handler_set_".$columnData->handler;
                 if (method_exists($this, $handler_func)) {
@@ -434,6 +433,7 @@ class Model implements \ArrayAccess
                 trigger_error("Column '$name' not found in model ".get_called_class(), E_USER_ERROR);
             }
         }
+        return $value;
     }
 
     // @encrypted
