@@ -10,7 +10,7 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop &data) */) {
+    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop, &data) */) {
         if (!AJAX) return $this;
         if (($upload = X_upload())) die($upload);
         $this->saveData($_POST, $error, false, $customFunctions);
