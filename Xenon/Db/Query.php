@@ -116,14 +116,17 @@ class Query
                 returns an associative array with custom keys pointing to specified fields and their values
             [['field1', 'field2']]
                 (array of arrays of strings)
-                returns an associative array of associative arrays with specified fields and their values, grouped by a shared key value
+                returns an associative array of array of associative arrays with specified fields and their values, grouped by a shared key value
+            ['subkeyfield' => ['field1', 'field2']]
+                (array of arrays of strings)
+                returns an associative array of associative array of associative arrays with specified fields and their values, grouped by a shared key value
             [['key1' => 'field1', 'key2' => 'field2'] ]
                 (array of associative arrays of strings)
-                returns an associative array of associative arrays with custom keys pointing to specified fields and their values, grouped by a shared key value
+                returns an associative array of array of associative arrays with custom keys pointing to specified fields and their values, grouped by a shared key value
             ['key1' => function($row){...}, 'key2' => function($row){...}]  (array of callables)
-                returns an associative array with custom keys and their calculated values using the provided callable
+                returns an associative array of array with custom keys and their calculated values using the provided callable
             [['key1' => function($row){...}, 'key2' => function($row){...}]]  (array of callables)
-                returns an associative array of associative arrays with custom keys and their calculated values using the provided callable, grouped by a shared key value
+                returns an associative array of array of associative arrays with custom keys and their calculated values using the provided callable, grouped by a shared key value
             
             when $valuefield is an associative array, we can mix strings and callables
     */
@@ -132,9 +135,15 @@ class Query
         
         // Handle Array of array
         $is_array_of_array = false;
-        if (is_array($valuefield) && count($valuefield) == 1 && isset($valuefield[0])) {
+        if (is_array($valuefield) && count($valuefield) == 1) {
             $is_array_of_array = true;
-            $valuefield = $valuefield[0];
+            $array_of_array_keyfield = null;
+            if (isset($valuefield[0])) {
+                $valuefield = $valuefield[0];
+            } else {
+                $array_of_array_keyfield = key($valuefield);
+                $valuefield = $valuefield[$array_of_array_keyfield];
+            }
         }
         if ($keyfield === null && $is_array_of_array) {
             trigger_error("Must set a keyfield when using grouped associative arrays");
@@ -173,7 +182,11 @@ class Query
                 $results[] = $val;
             } else {
                 if ($is_array_of_array) {
-                    $results[$row->$keyfield][] = $val;
+                    if ($array_of_array_keyfield) {
+                        $results[$row->$keyfield][$row->$array_of_array_keyfield] = $val;
+                    } else {
+                        $results[$row->$keyfield][] = $val;
+                    }
                 } else {
                     $results[$row->$keyfield] = $val;
                 }

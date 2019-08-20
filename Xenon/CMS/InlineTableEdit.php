@@ -665,12 +665,24 @@ class InlineTableEdit {
                     };
                     $parent.find('[name]').each(function(){
                         var value = $(this).hasClass('wysiwyg')? $(this).html() : $(this).val();
-                        if (this.tagName == "INPUT" && this.type == "checkbox") {
-                            value = $(this).prop('checked')? 1:0;
+                        if ($(this).attr('name').match(/\[\]$/)) {
+                            var name = $(this).attr('name').replace(/\[\]$/, '');
+                            if (!$(this).prop('disabled')) {
+                                if (this.tagName != "INPUT" || this.type != "checkbox" || $(this).prop('checked')) {
+                                    if (typeof data[name] != 'object') {
+                                        data[name] = [];
+                                    }
+                                    data[name].push(value);
+                                }
+                            }
+                        } else {
+                            if (this.tagName == "INPUT" && this.type == "checkbox") {
+                                value = $(this).prop('checked')? 1:0;
+                            }
+                            if (typeof value === 'object' && Object.keys(value).length == 0) value = "";
+                            if (typeof value === 'undefined') value = "";
+                            if (!$(this).prop('disabled')) data[$(this).attr('name')] = value;
                         }
-                        if (typeof value === 'object' && Object.keys(value).length == 0) value = "";
-                        if (typeof value === 'undefined') value = "";
-                        if (!$(this).prop('disabled')) data[$(this).attr('name')] = value;
                     });
                     if (typeof window[customBeforeFunc] === 'function') {
                         if (window[customBeforeFunc](data, $parent) === false) {
