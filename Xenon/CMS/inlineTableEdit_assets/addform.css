@@ -1,0 +1,70 @@
+form.inlineEditTable_add {
+    margin: 20px auto;
+    width: 90%;
+    max-width: 1080px;
+    background-color: #eee;
+}
+form.inlineEditTable_add > label {
+    display: inline-block;
+    margin: 10px;
+    width: 250px;
+    float: left;
+}
+form.inlineEditTable_add > label > strong {
+    font-size: 14px;
+    color: #444;
+}
+form.inlineEditTable_add > label > input,
+form.inlineEditTable_add > label > select,
+form.inlineEditTable_add > label > textarea {
+    display: block;
+    width: 250px;
+    padding: 6px;
+}
+form.inlineEditTable_add > label > input[type="checkbox"] {
+    height: 30px;
+    width: 30px;
+}
+form.inlineEditTable_add > label > textarea {
+    height: 100px;
+}
+form.inlineEditTable_add input[type="submit"] {
+    display: block;
+    clear: both;
+    width: 100px;
+    height: 30px;
+    margin: 20px auto;
+    border: solid 1px #aaa;
+}
+form.inlineEditTable_add div[data-i] {
+    min-width: 200px;
+    width: 100%;
+    clear: both;
+}
+form.inlineEditTable_add div[data-i] > input {
+    min-width: initial;
+    width: 90%;
+    float: left;
+}
+form.inlineEditTable_add div[data-i] > input:nth-child(1) {
+    clear: both;
+}
+form.inlineEditTable_add div[data-i] > input[data-nbfields="2"] {
+    width: 46%;
+}
+form.inlineEditTable_add div[data-i] i.fa-times {
+    width: 5%;
+    float: left;
+    padding: 5px;
+}
+form.inlineEditTable_add a.add {
+    display: inline-block;
+    clear: both;
+    padding: 10px 20px;
+    margin: 5px;
+    border-radius: 5px;
+    background-color: #ccc;
+}
+form.inlineEditTable_add input.checkboxToActivateField:not(:checked) + div {
+    display: none;
+}

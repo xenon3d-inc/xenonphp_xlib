@@ -55,10 +55,10 @@ class Where {
                                     $this->where = "$field IS NULL";
                                     $args = [];
                                 } else if ($args[0] === true) {
-                                    $this->where = "$field IS NOT NULL AND $field = 1";
+                                    $this->where = "($field IS NOT NULL AND $field = 1)";
                                     $args = [];
                                 } else if ($args[0] === false) {
-                                    $this->where = "$field IS NULL OR $field = 0";
+                                    $this->where = "($field IS NULL OR $field = 0)";
                                     $args = [];
                                 }
                             } else {
@@ -103,6 +103,15 @@ class Where {
         if ($this->where !== '') $this->where .= " $op ";
         $this->where .= $where;
         $this->orderByPriority["$where"] = "DESC";
+    }
+
+    public static function fromArray($model, array $arr) {
+        $where = new \Xenon\Db\Query\Helper\Where($model);
+        foreach ($arr as $key => $value) {
+            if (is_numeric($key)) $where->andWhere($model, $value);
+            else $where->andWhere($model, $key, $value);
+        }
+        return $where;
     }
     
     public function __toString() {

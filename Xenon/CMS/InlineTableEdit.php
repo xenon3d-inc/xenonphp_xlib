@@ -5,12 +5,17 @@ class InlineTableEdit {
     public $source;
     public $data; // [ 'properties' => [...], 'rows' => [...] ]
 
+    public $canCreate = true;
+    public $canDelete = true;
+    public $canEdit = [true]; // Associative Array of field=>bool that can be edited or not. First bool element is default when field not specified.
+    public $canView = [true]; // Associative Array of field=>bool that can be viewed or not. First bool element is default when field not specified.
+
     public function __construct($source = null) {
         $this->source = $source;
         return $this;
     }
 
-    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop, &data) */) {
+    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop, &data) */, $validateSave = null /* Function(&$row, &$error) that returns true to validate row before saving */) {
         if (!AJAX) return $this;
         if (($upload = X_upload())) die($upload);
         $this->saveData($_POST, $error, false, $customFunctions);
@@ -60,12 +65,7 @@ class InlineTableEdit {
                             $query = $source::select();
                             if ($filters) {
                                 if (!($filters instanceof \Xenon\Db\Query\Helper\Where)) {
-                                    $where = new \Xenon\Db\Query\Helper\Where($source);
-                                    foreach ((array)$filters as $key => $value) {
-                                        if (is_numeric($key)) $where->andWhere($source, $value);
-                                        else $where->andWhere($source, $key, $value);
-                                    }
-                                    $filters = $where;
+                                    $filters = \Xenon\Db\Query\Helper\Where::fromArray($source, $filters);
                                 }
                                 $query->where($filters);
                             }
@@ -92,7 +92,7 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function(value, row, prop, &data) */) {
+    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function(value, row, prop, &data) */, $validateSave = null /* Function(&$row, &$error) that returns true to validate row before saving */) {
         if ($source === false) $source = $this->source;
         if ($source === null) {
             $error = "Source Error";
@@ -107,29 +107,35 @@ class InlineTableEdit {
                             $properties = $source::getProperties();
                             if (isset($values['id'])) {
                                 if ($values['id'] === '_NEW_') {
-                                    // Create New Entry
-                                    unset($values['id']);
-                                    $data = [];
-                                    $returnedData = [];
-                                    foreach ($values as $key => $value) {
-                                        $prop = $properties['fields'][$key];
-                                        //TODO validate some things like attributes from $prop...
-                                        if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
-                                            $returnedData[$key] = $customFunctions[$key]($value, $values, $prop, $data);
-                                        } else {
-                                            if (isset($prop['attributes']['strip_tags'])) {
-                                                $value = strip_tags($value);
+                                    if ($this->canCreate) {
+                                        // Create New Entry
+                                        unset($values['id']);
+                                        $data = [];
+                                        $returnedData = [];
+                                        foreach ($values as $key => $value) {
+                                            $prop = $properties['fields'][$key];
+                                            //TODO validate some things like attributes from $prop...
+                                            if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
+                                                $returnedData[$key] = $customFunctions[$key]($value, $values, $prop, $data);
+                                            } else {
+                                                if (isset($prop['attributes']['strip_tags'])) {
+                                                    $value = strip_tags($value);
+                                                }
+                                                $returnedData[$key] = $value;
                                             }
-                                            $returnedData[$key] = $value;
                                         }
-                                    }
-                                    $data += $returnedData;
-                                    try {
-                                        $row = new $source($data);
-                                        //TODO other stuff ?
-                                        $row->save();
-                                    } catch(Exception $e) {
-                                        $error = "Error while saving new entry: ".$e->getMessage();
+                                        $data += $returnedData;
+                                        try {
+                                            $row = new $source($data);
+                                            //TODO other stuff ?
+                                            if (!is_callable($validateSave) || $validateSave($row, $error) === true) {
+                                                $row->save();
+                                            } else {
+                                                $error = "Error saving data. $error";
+                                            }
+                                        } catch(Exception $e) {
+                                            $error = "Error while saving new entry: ".$e->getMessage();
+                                        }
                                     }
                                 } else {
                                     $row = $source::fetchById($values['id']);
@@ -138,36 +144,54 @@ class InlineTableEdit {
                                         if (count($values) == 1 && isset($values['_ACTION_'])) {
                                             switch ($values['_ACTION_']) {
                                                 case 'DELETE': 
-                                                //TODO validate that we can delete it...
-                                                try {
-                                                    $row->delete();
-                                                } catch (Exception $e) {
-                                                    $error = "Error while trying to delete entry: ".$e->getMessage();
-                                                }
-                                                break;
+                                                    if ($this->canDelete) {
+                                                        try {
+                                                            $row->delete();
+                                                        } catch (Exception $e) {
+                                                            $error = "Error while trying to delete entry: ".$e->getMessage();
+                                                        }
+                                                    } else {
+                                                        $error = "Permission denied to delete items";
+                                                    }
+                                                    break;
                                                 default: 
-                                                $error = "Invalid Action";
-                                                break;
+                                                    $error = "Invalid Action";
+                                                    break;
                                             }
                                         } else {
                                             // Edit Entry
-                                            try {
-                                                $data = [];
-                                                foreach ($values as $key => $value) {
-                                                    $prop = $properties['fields'][$key];
-                                                    //TODO validate some things like attributes from $prop...
-                                                    if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
-                                                        $row->set($key, $customFunctions[$key]($value, $row, $prop, $data), false);
-                                                    } else {
-                                                        $row->set($key, $value, false);
+                                            $canEdit = (array)$this->canEdit;
+                                            if ($canEdit !== [false]) {
+                                                $defaultCanEdit = (@$canEdit[0])? true:false;
+                                                try {
+                                                    $data = [];
+                                                    foreach ($values as $key => $value) {
+                                                        $prop = $properties['fields'][$key];
+                                                        // Make sure we have the right to edit this field
+                                                        if (((!isset($canEdit[$key]) && $defaultCanEdit) || !empty($canEdit[$key])) && empty($prop['attributes']['readonly']) && empty($prop['attributes']['createonly'])) {
+                                                            //TODO validate some things like attributes from $prop...
+                                                            if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
+                                                                $row->set($key, $customFunctions[$key]($value, $row, $prop, $data), false);
+                                                            } else {
+                                                                $row->set($key, $value, false);
+                                                            }
+                                                        } else {
+                                                            throw new \Exception("Permission denied to edit the field $key");
+                                                        }
                                                     }
+                                                    foreach ($data as $key => $val) {
+                                                        $row->set($key, $val);
+                                                    }
+                                                    if (!is_callable($validateSave) || $validateSave($row, $error) === true) {
+                                                        $row->save();
+                                                    } else {
+                                                        $error = "Error saving data. $error";
+                                                    }
+                                                } catch(\Exception $e) {
+                                                    $error = "Error while saving data: ".$e->getMessage();
                                                 }
-                                                foreach ($data as $key => $val) {
-                                                    $row->set($key, $val);
-                                                }
-                                                $row->save();
-                                            } catch(Exception $e) {
-                                                $error = "Error while saving data: ".$e->getMessage();
+                                            } else {
+                                                $error = "Permission to edit is denied";
                                             }
                                         }
                                     } else {
@@ -178,7 +202,7 @@ class InlineTableEdit {
                             break;
                         //TODO handle more class types
                         default:
-                            return $this->saveData($values, $error, get_parent_class($source), $customFunctions);
+                            return $this->saveData($values, $error, get_parent_class($source), $customFunctions, $validateSave);
                     }
                 } else {
                     //TODO handle more string source types
@@ -229,7 +253,10 @@ class InlineTableEdit {
         if (isset($prop['attributes']['strip_tags'])) {
             $value = strip_tags($value);
         }
-        $readonly = (isset($prop['attributes']['readonly']) || (!$isAddForm && isset($prop['attributes']['createonly'])))? ' readonly ':'';
+        $canEdit = (array)$this->canEdit;
+        $defaultCanEdit = (@$canEdit[0])? true:false;
+        $canEdit = (!isset($canEdit[$fieldName]) && $defaultCanEdit) || !empty($canEdit[$fieldName]);
+        $readonly = ((!$isAddForm && !$canEdit) || (isset($prop['attributes']['readonly']) || (!$isAddForm && isset($prop['attributes']['createonly']))))? ' readonly ':'';
         $required = ((isset($prop['attributes']['required']) || $prop['null'] === false) && !$readonly)? ' required ':'';
         if ($type == 'tinyint' && $prop['handler'] == 'bool') {
             $type = 'bool';
@@ -313,6 +340,7 @@ class InlineTableEdit {
                 }
             break;
             case 'select':
+                if ($readonly) $readonly = "$readonly disabled ";
                 echo '<select name="'.$fieldName.'" '.$readonly.$required.$autocomplete_list.'>';
                 if (($value == '' && $row['id'] != '_NEW_') || $prop['null']) echo '<option></option>';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
@@ -403,6 +431,7 @@ class InlineTableEdit {
     }
 
     public function generateAddForm(array $customFunctions = []/* array of field => function(value, row, prop, isAddForm)  OR  field => false */, array $row = []) {
+        if (!$this->canCreate) return $this;
         $row['id'] = '_NEW_';
         echo '<form class="inlineEditTable_add" autocomplete="off">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
@@ -426,111 +455,27 @@ class InlineTableEdit {
         echo '<input type="submit" /><br>';
         echo '</form>';
         ?>
-        <style>
-            form.inlineEditTable_add {
-                margin: 20px auto;
-                width: 90%;
-                max-width: 1080px;
-                background-color: #eee;
-            }
-            form.inlineEditTable_add > label {
-                display: inline-block;
-                margin: 10px;
-                width: 250px;
-                float: left;
-            }
-            form.inlineEditTable_add > label > strong {
-                font-size: 14px;
-                color: #444;
-            }
-            form.inlineEditTable_add > label > input,
-            form.inlineEditTable_add > label > select,
-            form.inlineEditTable_add > label > textarea {
-                display: block;
-                width: 250px;
-                padding: 6px;
-            }
-            form.inlineEditTable_add > label > input[type="checkbox"] {
-                height: 30px;
-                width: 30px;
-            }
-            form.inlineEditTable_add > label > textarea {
-                height: 100px;
-            }
-            form.inlineEditTable_add input[type="submit"] {
-                display: block;
-                clear: both;
-                width: 100px;
-                height: 30px;
-                margin: 20px auto;
-                border: solid 1px #aaa;
-            }
-            form.inlineEditTable_add div[data-i] {
-                min-width: 200px;
-                width: 100%;
-                clear: both;
-            }
-            form.inlineEditTable_add div[data-i] > input {
-                min-width: initial;
-                width: 90%;
-                float: left;
-            }
-            form.inlineEditTable_add div[data-i] > input:nth-child(1) {
-                clear: both;
-            }
-            form.inlineEditTable_add div[data-i] > input[data-nbfields="2"] {
-                width: 46%;
-            }
-            form.inlineEditTable_add div[data-i] i.fa-times {
-                width: 5%;
-                float: left;
-                padding: 5px;
-            }
-            form.inlineEditTable_add a.add {
-                display: inline-block;
-                clear: both;
-                padding: 10px 20px;
-                margin: 5px;
-                border-radius: 5px;
-                background-color: #ccc;
-            }
-            form.inlineEditTable_add input.checkboxToActivateField:not(:checked) + div {
-                display: none;
-            }
-        </style>
-        <script>
-            $('form.inlineEditTable_add').on('submit', function(e){
-                e.preventDefault();
-                $.ajax({
-                    url: '',
-                    method: 'post',
-                    data: $(this).serialize(),
-                    success: function(response){
-                        if (response === "OK") {
-                            location.reload(true);
-                        } else {
-                            alert(response);
-                        }
-                    },
-                    error: function(response){
-                        alert(response);
-                    }
-                });
-            });
-        </script>
+        <?php X_css(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/addform.css", true);?>
+        <?php X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/addform.js", true);?>
         <?php 
+        return $this;
     }
 
     public function generateTable(array $customFunctions = []/* array of field => function(value, row, prop, isAddForm) */) {
+        $canView = (array)$this->canView;
+        $defaultCanView = (@$canView[0])? true:false;
         X_js(XLIB_PATH.'helpers/ajaxUpload.js');
         echo '<table class="inlineTableEdit">';
         echo '<thead>';
-            echo '<tr>';
-            echo '<th>';
-            echo 'ID / Delete';
-            echo '</th>';
+            if ((@$canView['id']) !== false) {
+                echo '<tr>';
+                echo '<th>';
+                echo 'ID'; if ($this->canDelete) echo ' / Delete';
+                echo '</th>';
+            }
             foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
-                if (isset($customFunctions[$fieldName]) && $customFunctions[$fieldName] === false) {
+                $canViewThis = (!isset($canView[$fieldName]) && $defaultCanView) || !empty($canView[$fieldName]);
+                if ((isset($customFunctions[$fieldName]) && $customFunctions[$fieldName] === false) || !$canViewThis) {
                     continue;
                 }
                 $hint = (isset($prop['attributes']['hint']))? 'title="'.htmlentities($prop['attributes']['hint']).'"' : '';
@@ -543,12 +488,17 @@ class InlineTableEdit {
         echo '<tbody>';
         foreach ($this->data['rows'] as $id => $row) {
             echo '<tr>';
-            echo '<td data-fieldname="id">';
-            echo $id;
-            echo '<i class="fas fa-times" data-delete-id="'.$id.'"></i>';
+            if ((@$canView['id']) !== false) {
+                echo '<td data-fieldname="id">';
+                echo $id;
+                if ($this->canDelete) {
+                    echo '<i class="fas fa-times" data-delete-id="'.$id.'"></i>';
+                }
+            }
             echo '</td>';
             foreach ($this->data['properties']['fields'] as $fieldName => $prop) if ($prop['attributes']) {
-                if (isset($customFunctions[$fieldName]) && $customFunctions[$fieldName] === false) {
+                $canViewThis = (!isset($canView[$fieldName]) && $defaultCanView) || !empty($canView[$fieldName]);
+                if ((isset($customFunctions[$fieldName]) && $customFunctions[$fieldName] === false) || !$canViewThis) {
                     continue;
                 }
                 $hint = (isset($prop['attributes']['hint']))? 'title="'.htmlentities($prop['attributes']['hint']).'"' : '';
@@ -567,263 +517,10 @@ class InlineTableEdit {
         // echo '</tfoot>';
         echo '</table>';
         ?>
-        <style>
-            table.inlineTableEdit {
-
-            }
-            table.inlineTableEdit tr {
-
-            }
-            table.inlineTableEdit th {
-                padding: 10px;
-            }
-            table.inlineTableEdit td {
-                background-color: #fff;
-                border: solid 1px #ccc;
-                padding: 5px;
-                text-align: center;
-            }
-            table.inlineTableEdit td > i.fa-times {
-                float: right;
-                padding: 0 5px;
-            }
-            table.inlineTableEdit td input,
-            table.inlineTableEdit td select,
-            table.inlineTableEdit td textarea {
-                background-color: transparent;
-                max-width: 100%;
-                height: 100%;
-                min-height: 60px;
-                display: block;
-                padding: 5px;
-                text-align: center;
-            }
-            table.inlineTableEdit td input[type="checkbox"] {
-                height: 30px;
-                width: 30px;
-            }
-            table.inlineTableEdit td input {
-                
-            }
-            table.inlineTableEdit td select {
-
-            }
-            table.inlineTableEdit td textarea {
-
-            }
-            table.inlineTableEdit td img {
-                margin: 10px;
-                max-height: 50px;
-            }
-            table.inlineTableEdit td[status="saving"] {
-                background-color: #ff0;
-            }
-            table.inlineTableEdit td[status="success"] {
-                background-color: #080;
-            }
-            table.inlineTableEdit td[status="error"] {
-                background-color: #f00;
-            }
-            table.inlineTableEdit td[status=""] {
-                transition: background-color 1000ms;
-            }
-            table.inlineTableEdit td div[data-i] {
-                min-width: 200px;
-                width: 100%;
-                clear: both;
-            }
-            table.inlineTableEdit td div[data-i] > input {
-                min-width: initial;
-                width: 90%;
-                float: left;
-            }
-            table.inlineTableEdit td div[data-i] > input:nth-child(1) {
-                clear: both;
-            }
-            table.inlineTableEdit td div[data-i] > input[data-nbfields="2"] {
-                width: 46%;
-            }
-            table.inlineTableEdit td div[data-i] i.fa-times {
-                width: 5%;
-                float: left;
-                padding: 5px;
-                line-height: 50px;
-            }
-            table.inlineTableEdit a.add {
-                display: inline-block;
-                clear: both;
-                padding: 10px 20px;
-                margin: 5px;
-                border-radius: 5px;
-                background-color: #ccc;
-            }
-            table.inlineTableEdit td input.checkboxToActivateField:not(:checked) + div {
-                display: none;
-            }
-        </style>
-        <script>
-            // Ajax Auto Save
-            /*
-                Custom JS functions : 
-                    X_tableEditBeforeAjax_FIELDNAME(data, $td) // we may modify data, return false to cancel the ajax request
-                    X_tableEditAjaxSuccess_FIELDNAME(response, $td) // return true for success, otherwise its considered a failure, string is an error message
-            */
-            $('.inlineTableEdit').on('change.autosave', 'input[name], select[name], textarea[name], .wysiwyg', function(){
-                console.log('triggered autosave');
-                var $input = $(this);
-                var autoSaveAction = function(){
-                    if ($input.get(0).tagName == "INPUT" && $input.get(0).type == "file") return;
-                    var $parent = $input.closest('[data-fieldname]');
-                    var customBeforeFunc = 'X_tableEditBeforeAjax_'+$parent.attr('data-fieldname');
-                    var customSuccessFunc = 'X_tableEditAjaxSuccess_'+$parent.attr('data-fieldname');
-                    var data = {
-                        id: $parent.attr('data-id'),
-                    };
-                    $parent.find('[name]').each(function(){
-                        var value = $(this).hasClass('wysiwyg')? $(this).html() : $(this).val();
-                        if ($(this).attr('name').match(/\[\]$/)) {
-                            var name = $(this).attr('name').replace(/\[\]$/, '');
-                            if (!$(this).prop('disabled')) {
-                                if (this.tagName != "INPUT" || this.type != "checkbox" || $(this).prop('checked')) {
-                                    if (typeof data[name] != 'object') {
-                                        data[name] = [];
-                                    }
-                                    data[name].push(value);
-                                }
-                            }
-                        } else {
-                            if (this.tagName == "INPUT" && this.type == "checkbox") {
-                                value = $(this).prop('checked')? 1:0;
-                            }
-                            if (typeof value === 'object' && Object.keys(value).length == 0) value = "";
-                            if (typeof value === 'undefined') value = "";
-                            if (!$(this).prop('disabled')) data[$(this).attr('name')] = value;
-                        }
-                    });
-                    if (typeof window[customBeforeFunc] === 'function') {
-                        if (window[customBeforeFunc](data, $parent) === false) {
-                            return;
-                        }
-                    }
-                    $parent.attr('status', "saving");
-                    $.ajax({
-                        url: '',
-                        method: 'post',
-                        data: data,
-                        success: function(response){
-                            if (typeof window[customSuccessFunc] === 'function') {
-                                response = window[customSuccessFunc](response, $parent);
-                            } else {
-                                if (response === "OK") {
-                                    response = true;
-                                }
-                            }
-                            if (response === true) {
-                                $parent.attr('status', "success");
-                                setTimeout(function(){$parent.attr('status', "");}, 1000);
-                            } else {
-                                $parent.attr('status', "error");
-                                alert(response);
-                            }
-                        },
-                        error: function(response){
-                            $parent.attr('status', "error");
-                            alert(response);
-                        },
-                        complete: function(){
-
-                        }
-                    });
-                };
-                if ($input.is('[delayed]')) {
-                    setTimeout(autoSaveAction, +$input.attr('delayed'));
-                } else {
-                    autoSaveAction();
-                }
-            });
-            // Ajax Delete
-            $('.inlineTableEdit').on('click', '[data-delete-id]', function(){
-                if (confirm("Delete this entry ?")) {
-                    $.ajax({
-                        url: '',
-                        method: 'post',
-                        data: {
-                            'id': $(this).attr('data-delete-id'),
-                            '_ACTION_': 'DELETE',
-                        },
-                        success: function(response) {
-                            location.reload(true);
-                        },
-                        error: function(response) {
-                            alert(response);
-                        }
-                    });
-                }
-            });
-
-            function X_inlineTableEdit_removeArrayElement(fieldName, $elem) {
-                var $td = $elem.closest('td');
-                $elem.closest('div').remove();
-                if ($td.length) {
-                    $td.find('input[name="'+fieldName+'"]').trigger('change.autosave');
-                }
-            }
-
-            function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem) {
-                var $parent = $elem.parent();
-                var nextIndex = 0;
-                $parent.find('div[data-i]').each(function(){
-                    var i = +$(this).attr('data-i');
-                    if (i >= nextIndex) {
-                        nextIndex = i+1;
-                    }
-                });
-                var $div = $('<div>').attr('data-i', nextIndex).insertBefore($elem);
-
-                var appendField = function(name, structure, nbfields) {
-                    nbfields = nbfields || 1;
-                    switch (typeof structure) {
-                        case 'string':
-                            switch (structure) {
-                                default:
-                                    $('<input>').appendTo($div)
-                                        .attr('type', structure || 'text')
-                                        .attr('name', name)
-                                        .attr('data-nbfields', nbfields)
-                                        .attr('autocomplete', 'false_'+name.replace(/\]\[/g, '_'))
-                                        .attr('value', '')
-                                    ;
-                                break;
-                                case 'textarea':
-                                    $('<textarea>').appendTo($div)
-                                        .attr('name', name)
-                                        .attr('data-nbfields', nbfields)
-                                        .attr('autocomplete', 'false_'+name.replace(/\]\[/g, '_'))
-                                    ;
-                                break;
-                            }
-                        break;
-                        case 'object':
-                            if (structure === null) {
-                                appendField(name, '');
-                            } else {
-                                for (var i in structure) {
-                                    appendField(name+'['+i+']', structure[i], Object.keys(structure).length);
-                                }
-                            }
-                        break;
-                    }
-                };
-                appendField(fieldName+'['+nextIndex+']', structure);
-
-                $div.find('input').get(0).focus();
-                $('<i>').attr('class', 'fas fa-times').on('click', function(){
-                    X_inlineTableEdit_removeArrayElement(fieldName, $(this));
-                }).appendTo($div);
-            }
-
-        </script>
+        <?php X_css(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/table.css", true);?>
+        <?php X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/table.js", true);?>
         <?php
+        return $this;
     }
 
 }

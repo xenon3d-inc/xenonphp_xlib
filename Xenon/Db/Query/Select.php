@@ -47,6 +47,11 @@ class Select extends \Xenon\Db\Query
         }
         return $this;
     }
+
+    public function setFields($fields) {
+        $this->fields = [];
+        $this->addFields($fields);
+    }
     
     public function groupBy($expr) {
         $this->groupby = "".$expr;

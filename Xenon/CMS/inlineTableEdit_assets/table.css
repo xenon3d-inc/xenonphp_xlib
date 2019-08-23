@@ -1,0 +1,92 @@
+table.inlineTableEdit {
+
+}
+table.inlineTableEdit tr {
+
+}
+table.inlineTableEdit th {
+    padding: 10px;
+}
+table.inlineTableEdit td {
+    background-color: #fff;
+    border: solid 1px #ccc;
+    padding: 5px;
+    text-align: center;
+}
+table.inlineTableEdit td > i.fa-times {
+    float: right;
+    padding: 0 5px;
+}
+table.inlineTableEdit td input,
+table.inlineTableEdit td select,
+table.inlineTableEdit td textarea {
+    background-color: transparent;
+    max-width: 100%;
+    height: 100%;
+    min-height: 60px;
+    display: block;
+    padding: 5px;
+    text-align: center;
+}
+table.inlineTableEdit td input[type="checkbox"] {
+    height: 30px;
+    width: 30px;
+}
+table.inlineTableEdit td input {
+    
+}
+table.inlineTableEdit td select {
+
+}
+table.inlineTableEdit td textarea {
+
+}
+table.inlineTableEdit td img {
+    margin: 10px;
+    max-height: 50px;
+}
+table.inlineTableEdit td[status="saving"] {
+    background-color: #ff0;
+}
+table.inlineTableEdit td[status="success"] {
+    background-color: #080;
+}
+table.inlineTableEdit td[status="error"] {
+    background-color: #f00;
+}
+table.inlineTableEdit td[status=""] {
+    transition: background-color 1000ms;
+}
+table.inlineTableEdit td div[data-i] {
+    min-width: 200px;
+    width: 100%;
+    clear: both;
+}
+table.inlineTableEdit td div[data-i] > input {
+    min-width: initial;
+    width: 90%;
+    float: left;
+}
+table.inlineTableEdit td div[data-i] > input:nth-child(1) {
+    clear: both;
+}
+table.inlineTableEdit td div[data-i] > input[data-nbfields="2"] {
+    width: 46%;
+}
+table.inlineTableEdit td div[data-i] i.fa-times {
+    width: 5%;
+    float: left;
+    padding: 5px;
+    line-height: 50px;
+}
+table.inlineTableEdit a.add {
+    display: inline-block;
+    clear: both;
+    padding: 10px 20px;
+    margin: 5px;
+    border-radius: 5px;
+    background-color: #ccc;
+}
+table.inlineTableEdit td input.checkboxToActivateField:not(:checked) + div {
+    display: none;
+}
