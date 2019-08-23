@@ -1,3 +1,4 @@
+<!-- BEGIN select_autocomplete_list -->
 <style>
     div.autocomplete_list {
         position: relative;
@@ -9,14 +10,14 @@
         position: absolute;
         list-style: none;
         width: 100%;
-        min-height: 30px;
+        min-height: 20px;
         box-shadow: 0px 10px 20px 10px #555;
         background-color: #ccc;
     }
     div.autocomplete_list ul:empty:after {
-        content: '-----';
+        content: ' --- ';
         color: #888;
-        line-height: 30px;
+        line-height: 20px;
         text-align: left;
         padding: 3px 10px;
     }
@@ -29,6 +30,11 @@
         text-align: left;
         cursor: pointer;
     }
+    div.autocomplete_list ul li:empty:after {
+        content: ' [NULL] ';
+        color: #888;
+        line-height: 20px;
+    }
     div.autocomplete_list ul li.active {
         background-color: #48f;
         color: #fff;
@@ -38,7 +44,6 @@
         color: #fff;
     }
 </style>
-
 <script>
     $(document)
         .off('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated)')
@@ -136,3 +141,4 @@
             refreshOptions();
         });
 </script>
+<!-- END select_autocomplete_list -->
