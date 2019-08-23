@@ -1,0 +1,138 @@
+<style>
+    div.autocomplete_list {
+        position: relative;
+    }
+    div.autocomplete_list > input[type="text"] {
+        text-align: left;
+    }
+    div.autocomplete_list ul {
+        position: absolute;
+        list-style: none;
+        width: 100%;
+        min-height: 30px;
+        box-shadow: 0px 10px 20px 10px #555;
+        background-color: #ccc;
+    }
+    div.autocomplete_list ul:empty:after {
+        content: '-----';
+        color: #888;
+        line-height: 30px;
+        text-align: left;
+        padding: 3px 10px;
+    }
+    div.autocomplete_list ul li {
+        background-color: #ccc;
+        color: #000;
+        width: 100%;
+        display: block;
+        padding: 3px 10px;
+        text-align: left;
+        cursor: pointer;
+    }
+    div.autocomplete_list ul li.active {
+        background-color: #48f;
+        color: #fff;
+    }
+    div.autocomplete_list ul li:hover {
+        background-color: #05c;
+        color: #fff;
+    }
+</style>
+
+<script>
+    $(document)
+        .off('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated)')
+        .on('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated)', function(){
+            var $select = $(this);
+            var options = {};
+            $select.find('option').each(function(){
+                options[$(this).attr('value')] = $(this).text();
+            });
+            var selectedOptionValue = $select.val() || '';
+            var selectionOptionLabel = options[selectedOptionValue] || selectedOptionValue;
+            $select.addClass('autocompletion_activated').hide();
+            var $div = $('<div class="autocomplete_list">').insertAfter($select);
+            var $ul = $('<ul>').appendTo($div);
+            var $input = $('<input type="text">').prependTo($div).val(selectionOptionLabel).focus().select()
+            var $currentAutocompleteOption = null;
+            var removeAutocompleteList = function(){
+                $select.removeClass('autocompletion_activated').show();
+                $div.remove();
+            }
+            var selectOption = function(){
+                if ($currentAutocompleteOption) {
+                    $select.val($currentAutocompleteOption.attr('value'));
+                    removeAutocompleteList();
+                    $select.trigger('change');
+                }
+            };
+            var refreshOptions = function(){
+                var search = $input.val().trim().toLowerCase().replace(/\W+/g, ' ');
+                $ul.empty();
+                $currentAutocompleteOption = null;
+                for (var value in options) {
+                    var label = options[value].trim().toLowerCase().replace(/\W+/g, ' ');
+                    if (label.indexOf(search) >= 0) {
+                        var $li = $('<li>').attr('value', value).text(options[value]);
+                        if (!$currentAutocompleteOption) {
+                            $currentAutocompleteOption = $li;
+                            $currentAutocompleteOption.addClass('active');
+                        }
+                        $li.on('mousedown', function(e){
+                            e.preventDefault();
+                            e.stopPropagation();
+                            $currentAutocompleteOption = $(this);
+                            $currentAutocompleteOption.addClass('active');
+                            selectOption();
+                        });
+                        $ul.append($li);
+                    }
+                }
+            };
+            $input
+                .on('blur', function(e){
+                    removeAutocompleteList();
+                })
+                .on('keydown', function(e){
+                    if (e.keyCode == 9) { // TAB 
+                        selectOption();
+                    } else if (e.keyCode == 13) { // ENTER
+                        e.preventDefault();
+                    } else if (e.keyCode == 38 || e.keyCode == 39) { // UP / DOWN
+                        e.preventDefault();
+                    }
+                })
+                .on('keyup', function(e){
+                    e.stopPropagation();
+                    if (e.keyCode == 38) { // UP
+                        if ($currentAutocompleteOption) {
+                            var $previous = $currentAutocompleteOption.prev();
+                            if ($previous.length) {
+                                $currentAutocompleteOption.removeClass('active');
+                                $currentAutocompleteOption = $previous;
+                                $currentAutocompleteOption.addClass('active');
+                            }
+                        }
+                    } else if (e.keyCode == 40) { // DOWN
+                        if ($currentAutocompleteOption) {
+                            var $next = $currentAutocompleteOption.next();
+                            if ($next.length) {
+                                $currentAutocompleteOption.removeClass('active');
+                                $currentAutocompleteOption = $next;
+                                $currentAutocompleteOption.addClass('active');
+                            }
+                        }
+                    } else if (e.keyCode == 13) { // ENTER
+                        selectOption();
+                    } else if (e.keyCode == 9) { // TAB
+                        // do nothing
+                    } else if (e.keyCode == 27) { // ESCAPE
+                        removeAutocompleteList();
+                    } else {
+                        refreshOptions();
+                    }
+                })
+            ;
+            refreshOptions();
+        });
+</script>

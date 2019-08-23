@@ -254,19 +254,36 @@ class InlineTableEdit {
             <div>
             <?php
         }
+        $autocomplete_list = "";
+        if (!empty($prop['attributes']['autocomplete'])) {
+            $datalistID = "datalist_".$row['id']."_$fieldName";
+            if ($type != "select") {
+                echo '<datalist id="'.$datalistID.'">';
+                if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
+                    $option_labelField = @$prop['attributes']['options_label'];
+                    $option_label = $option_labelField? $option_row[$option_labelField] : $option_row;
+                    echo '<option value="'.htmlspecialchars($option_value).'" label="'.htmlspecialchars($option_label).'" />';
+                }
+                echo '</datalist>';
+                $autocomplete_list = " list=\"$datalistID\" ";
+            } else {
+                $autocomplete_list=" autocomplete_list ";
+                include_once(XLIB_PATH.'helpers/select_autocomplete_list.phtml');
+            }
+        }
         switch ($type) {
             case 'varchar':
                 //TODO implement translatable
-                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" maxlength="'.$prop['length'].'" '.$readonly.$required.' />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" maxlength="'.$prop['length'].'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'email':
-                echo '<input type="email" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.$required.' />';
+                echo '<input type="email" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'phone':
-                echo '<input type="phone" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.$required.' />';
+                echo '<input type="phone" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'decimal':
-                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" step="'.(1.0/pow(10, (int)preg_replace("#\d+,\s*(\d+)#","$1",$prop['length']))).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.$required.' />';
+                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" step="'.(1.0/pow(10, (int)preg_replace("#\d+,\s*(\d+)#","$1",$prop['length']))).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'int':
             case 'tinyint':
@@ -274,16 +291,16 @@ class InlineTableEdit {
             case 'mediumint':
             case 'bigint':
             case 'number':
-                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.$required.' />';
+                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'password':
                 echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" '.$readonly.$required.' />';
             break;
             case 'date':
-                echo '<input type="date" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d'):'').'" '.$readonly.$required.' />';
+                echo '<input type="date" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d'):'').'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'timestamp':
-                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.$required.' />';
+                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'bool':
                 echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' '.$readonly.$required.' />';
@@ -296,11 +313,11 @@ class InlineTableEdit {
                 }
             break;
             case 'select':
-                echo '<select name="'.$fieldName.'" '.$readonly.$required.'>';
+                echo '<select name="'.$fieldName.'" '.$readonly.$required.$autocomplete_list.'>';
                 if (($value == '' && $row['id'] != '_NEW_') || $prop['null']) echo '<option></option>';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
                     $option_labelField = @$prop['attributes']['options_label'];
-                    $option_label = $option_labelField? (is_object($option_row)? $option_row->$option_labelField : $option_row[$option_labelField]) : $option_row;
+                    $option_label = $option_labelField? $option_row[$option_labelField] : $option_row;
                     echo '<option '.($value == $option_value ? 'selected':'').' value="'.$option_value.'">'.$option_label.'</option>';
                 }
                 echo '</select>';
@@ -315,7 +332,7 @@ class InlineTableEdit {
             break;
             case 'text':
                 //TODO implement translatable
-                echo '<textarea name="'.$fieldName.'" '.$readonly.$required.'>'.$value.'</textarea>';
+                echo '<textarea name="'.$fieldName.'" '.$readonly.$required.$autocomplete_list.'>'.$value.'</textarea>';
             break;
             case 'array':
                 ?>
@@ -406,7 +423,7 @@ class InlineTableEdit {
             echo '</label>';
         }
         echo '<br>';
-        echo '<input type="submit" />';
+        echo '<input type="submit" /><br>';
         echo '</form>';
         ?>
         <style>
@@ -415,7 +432,6 @@ class InlineTableEdit {
                 width: 90%;
                 max-width: 1080px;
                 background-color: #eee;
-                overflow: hidden;
             }
             form.inlineEditTable_add > label {
                 display: inline-block;
@@ -502,7 +518,7 @@ class InlineTableEdit {
                 });
             });
         </script>
-        <?php
+        <?php 
     }
 
     public function generateTable(array $customFunctions = []/* array of field => function(value, row, prop, isAddForm) */) {

@@ -1,13 +1,15 @@
-0.8.0 - 2019-08-14
+0.8.0 - 2019-08-22
     Improved Xenon\CMS\InlineTableEdit (potentially breaking changes)
         added arrays and objects
         added more supported attributes
+        added autocomplete support
     Improvements in Xenon\Db\Model
         Including the implementation of ArrayAccess
     WIP console method for command line routing
     Improved ImageProcessor template (added jpegoptim)
     BugFix in viewport template
     Added orderByPriority in Where DB Helper
+    Added select_autocomplete_list javascript helper
 
 0.7.2 - 2019-07-10
     Improved Xenon\CMS\InlineTableEdit (and added wysiwyg field type)
