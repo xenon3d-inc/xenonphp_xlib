@@ -15,10 +15,10 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop, &data) */, $validateSave = null /* Function(&$row, &$error) that returns true to validate row before saving */) {
+    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop, &data) */, $validateSave = null /* Function(&$row, &$error, $values) that returns true to validate row before saving */) {
         if (!AJAX) return $this;
         if (($upload = X_upload())) die($upload);
-        $this->saveData($_POST, $error, false, $customFunctions);
+        $this->saveData($_POST, $error, false, $customFunctions, $validateSave);
         die($error?$error:"OK");
     }
 
@@ -92,7 +92,7 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function(value, row, prop, &data) */, $validateSave = null /* Function(&$row, &$error) that returns true to validate row before saving */) {
+    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function(value, row, prop, &data) */, $validateSave = null /* Function(&$row, &$error, $values) that returns true to validate row before saving */) {
         if ($source === false) $source = $this->source;
         if ($source === null) {
             $error = "Source Error";
@@ -115,8 +115,12 @@ class InlineTableEdit {
                                         foreach ($values as $key => $value) {
                                             $prop = $properties['fields'][$key];
                                             //TODO validate some things like attributes from $prop...
-                                            if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
-                                                $returnedData[$key] = $customFunctions[$key]($value, $values, $prop, $data);
+                                            if (isset($customFunctions[$key])) {
+                                                if (is_callable($customFunctions[$key])) {
+                                                    $returnedData[$key] = $customFunctions[$key]($value, $values, $prop, $data);
+                                                } else {
+                                                    $returnedData[$key] = $customFunctions[$key];
+                                                }
                                             } else {
                                                 if (isset($prop['attributes']['strip_tags'])) {
                                                     $value = strip_tags($value);
@@ -128,7 +132,7 @@ class InlineTableEdit {
                                         try {
                                             $row = new $source($data);
                                             //TODO other stuff ?
-                                            if (!is_callable($validateSave) || $validateSave($row, $error) === true) {
+                                            if (!is_callable($validateSave) || $validateSave($row, $error, $values) === true) {
                                                 $row->save();
                                             } else {
                                                 $error = "Error saving data. $error";
@@ -248,7 +252,7 @@ class InlineTableEdit {
 
     public function generateField($row, $fieldName, $prop = null, $isAddForm = false) {
         if ($prop === null) $prop = $this->data['properties']['fields'][$fieldName];
-        $type = isset($prop['attributes']['type'])? $prop['attributes']['type'] : $prop['type'];
+        $type = isset($prop['attributes']['type'])? $prop['attributes']['type'] : $prop['dataType'];
         $value = @$row[$fieldName];
         if (isset($prop['attributes']['strip_tags'])) {
             $value = strip_tags($value);
@@ -257,10 +261,8 @@ class InlineTableEdit {
         $defaultCanEdit = (@$canEdit[0])? true:false;
         $canEdit = (!isset($canEdit[$fieldName]) && $defaultCanEdit) || !empty($canEdit[$fieldName]);
         $readonly = ((!$isAddForm && !$canEdit) || (isset($prop['attributes']['readonly']) || (!$isAddForm && isset($prop['attributes']['createonly']))))? ' readonly ':'';
-        $required = ((isset($prop['attributes']['required']) || $prop['null'] === false) && !$readonly)? ' required ':'';
-        if ($type == 'tinyint' && $prop['handler'] == 'bool') {
-            $type = 'bool';
-        } else if ($type == 'varchar' && $prop['handler'] == 'enum') {
+        $required = ((isset($prop['attributes']['required']) || @$prop['null'] === false) && !$readonly)? ' required ':'';
+        if ($type == 'enum') {
             $type = 'select';
             if (empty($prop['options'])) {
                 $prop['options'] = [];
@@ -268,18 +270,17 @@ class InlineTableEdit {
                     $prop['options'][$v] = $v;
                 }
             }
-        } else if ($type == 'int' && ($prop['handler'] == 'manytoone' || $prop['handler'] == 'onetoone')) {
+        } else if (@$prop['handler'] == 'manytoone' || @$prop['handler'] == 'onetoone') {
             $type = 'select';
-        } else if ($type == 'text' && $prop['handler'] == 'array') {
-            $type = 'array';
-        } else if ($type == 'text' && $prop['handler'] == 'object') {
-            $type = 'object';
         }
         if (isset($prop['attributes']['checkbox'])) {
             ?>
             <input type="checkbox" class="checkboxToActivateField" name="<?=$fieldName?>" value="" onchange="$(this).next().find('input,textarea').prop('disabled', !$(this).prop('checked'));" <?=$value?'checked':''?>>
             <div>
             <?php
+        }
+        if (!isset($prop['length'])) {
+            $prop['length'] = 255;
         }
         $autocomplete_list = "";
         if (!empty($prop['attributes']['autocomplete'])) {
@@ -300,6 +301,7 @@ class InlineTableEdit {
         }
         switch ($type) {
             case 'varchar':
+            case 'string':
                 //TODO implement translatable
                 echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" maxlength="'.$prop['length'].'" '.$readonly.$required.$autocomplete_list.' />';
             break;
@@ -326,6 +328,8 @@ class InlineTableEdit {
             case 'date':
                 echo '<input type="date" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d'):'').'" '.$readonly.$required.$autocomplete_list.' />';
             break;
+            // case 'create_timestamp':
+            // case 'current_timestamp':
             case 'timestamp':
                 echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.$required.$autocomplete_list.' />';
             break;
@@ -340,9 +344,12 @@ class InlineTableEdit {
                 }
             break;
             case 'select':
-                if ($readonly) $readonly = "$readonly disabled ";
+                if ($readonly) {
+                    $readonly = "$readonly disabled ";
+                    echo '<input type="hidden" name="'.$fieldName.'" value="'.htmlspecialchars($value).'">';
+                }
                 echo '<select name="'.$fieldName.'" '.$readonly.$required.$autocomplete_list.'>';
-                if (($value == '' && $row['id'] != '_NEW_') || $prop['null']) echo '<option></option>';
+                if (($value == '' && ($row['id'] != '_NEW_' || $readonly)) || $prop['null']) echo '<option></option>';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
                     $option_labelField = @$prop['attributes']['options_label'];
                     $option_label = $option_labelField? $option_row[$option_labelField] : $option_row;
@@ -424,6 +431,9 @@ class InlineTableEdit {
                     onblur="$(this).trigger(\'change\');"
                     >'.$value.'</div>';
             break;
+            default:
+                if (!empty($prop['attributes']['readonly'])) echo $value;
+            break;
         }
         if (isset($prop['attributes']['checkbox'])) {
             echo "</div>";
@@ -435,7 +445,13 @@ class InlineTableEdit {
         $row['id'] = '_NEW_';
         echo '<form class="inlineEditTable_add" autocomplete="off">';
         echo '<input type="hidden" name="id" value="_NEW_" />';
-        foreach ($this->data['properties']['fields'] as $fieldName => $prop) if (!empty($prop['column']) && $prop['attributes'] && empty($prop['attributes']['readonly'])) {
+        foreach ($this->data['properties']['fields'] as $fieldName => $prop) {
+            if (empty($prop['column']) || empty($prop['attributes'])) {
+                continue;
+            }
+            if (!empty($prop['attributes']['readonly']) && (!empty($prop['onetomany']) || (@$prop['dataType'] == 'create_timestamp'))) {
+                continue;
+            }
             if (isset($customFunctions[$fieldName]) && $customFunctions[$fieldName] === false) {
                 continue;
             }

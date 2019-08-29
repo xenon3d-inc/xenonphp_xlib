@@ -23,6 +23,7 @@ class Column
     protected $ondelete = null; // 'cascade' ... ONLY FOR FOREIGN KEYS
 
     // Extended model annotations for advanced runtime features, does not alter table schema
+    protected $dataType = null; // Contains the original type given by metadata, without the (length) suffix
     protected $onetomany = null; // ModelClassName.propertyName   --->   ['model'=>'ModelClassName', 'field'=>'propertyName']
     protected $onetoone = null; // ModelClassName.propertyName   --->   ['model'=>'ModelClassName', 'field'=>'propertyName']
     protected $manytoone = null; // ModelClassName.propertyName   --->   ['model'=>'ModelClassName', 'field'=>'propertyName']
@@ -98,6 +99,7 @@ class Column
 
     protected function set_type($value)
     {
+        $this->dataType = preg_replace("#^(\w+)([\s\(].+)?$#i",'$1',$value);
         // String
         if (preg_match("#^varchar *\(?([0-9]+)\)?$#i", $value, $matches)) {
             $this->type = 'varchar';
