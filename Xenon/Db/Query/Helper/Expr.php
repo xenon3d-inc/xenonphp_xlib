@@ -20,7 +20,9 @@ class Expr {
                 while (strpos($this->expression, Expr::TMP_REPLACEMENT_STR) !== false && count($args) > 0) {
                     $value = array_shift($args);
                     if (!($value instanceof Field || $value instanceof Expr)) {
-                        if (is_array($value)) {
+                        if ($value instanceof \Xenon\Db\Model) {
+                            $value = $value->id;
+                        } elseif (is_array($value)) {
                             if (empty($value)) {
                                 $value = "(NULL)";
                                 trigger_error("Query Expr with empty array may cause unexpected behaviour", E_USER_WARNING);
