@@ -1,4 +1,5 @@
-0.8.0 - 2019-08-22
+0.8.0 - 2019-08-28
+    Added CodeEditor
     Improved Xenon\CMS\InlineTableEdit (potentially breaking changes)
         added arrays and objects
         added more supported attributes
