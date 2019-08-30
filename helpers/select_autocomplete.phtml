@@ -36,6 +36,15 @@
         color: #888;
         line-height: 20px;
     }
+    div.autocomplete_list ul li.loading {
+        color: #888;
+        line-height: 20px;
+        text-align: center;
+    }
+    div.autocomplete_list ul li.loading > i.fa-spinner {
+        animation: spin 1000ms linear infinite;
+        text-align: center;
+    }
     div.autocomplete_list ul li.active {
         background-color: #48f;
         color: #fff;
@@ -46,9 +55,11 @@
     }
 </style>
 <script>
+    var X_select_autocomplete_timeout = null;
+    var X_select_autocomplete_jqxhr = null;
     $(document)
-        .off('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated)')
-        .on('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated)', function(){
+        .off('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated), select[autocomplete_ajax]:not(.autocompletion_activated)')
+        .on('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated), select[autocomplete_ajax]:not(.autocompletion_activated)', function(){
             var $select = $(this);
             var options = {};
             $select.find('option').each(function(){
@@ -67,31 +78,55 @@
             }
             var selectOption = function(){
                 if ($currentAutocompleteOption) {
+                    if ($select.is('[autocomplete_ajax]')) {
+                        $select.empty().append($('<option>').attr('value', $currentAutocompleteOption.attr('value')).text($currentAutocompleteOption.text()));
+                    }
                     $select.val($currentAutocompleteOption.attr('value'));
                     removeAutocompleteList();
                     $select.trigger('change');
                 }
             };
+            var appendOption = function(val, text) {
+                var $li = $('<li>').attr('value', val).text(text);
+                if (!$currentAutocompleteOption) {
+                    $currentAutocompleteOption = $li;
+                    $currentAutocompleteOption.addClass('active');
+                }
+                $li.on('mousedown', function(e){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    $currentAutocompleteOption = $(this);
+                    $currentAutocompleteOption.addClass('active');
+                    selectOption();
+                });
+                $ul.append($li);
+            };
             var refreshOptions = function(){
-                var search = $input.val().trim().toLowerCase().replace(/\W+/g, ' ');
                 $ul.empty();
                 $currentAutocompleteOption = null;
-                for (var value in options) {
-                    var label = options[value].trim().toLowerCase().replace(/\W+/g, ' ');
-                    if (label.indexOf(search) >= 0) {
-                        var $li = $('<li>').attr('value', value).text(options[value]);
-                        if (!$currentAutocompleteOption) {
-                            $currentAutocompleteOption = $li;
-                            $currentAutocompleteOption.addClass('active');
+                if ($select.is('[autocomplete_ajax]')) {
+                    var search = $input.val().trim();
+                    $ul.empty().append($('<li class="loading">').append('<i class="fas fa-spinner">'));
+                    if (X_select_autocomplete_jqxhr) X_select_autocomplete_jqxhr.abort();
+                    if (X_select_autocomplete_timeout) clearTimeout(X_select_autocomplete_timeout);
+                    X_select_autocomplete_timeout = setTimeout(function(){
+                        X_select_autocomplete_jqxhr = $.get($select.attr('autocomplete_ajax'), {
+                            'search': search,
+                        }, function(data){
+                            X_select_autocomplete_jqxhr = null;
+                            $ul.empty();
+                            for (var val in data) {
+                                appendOption(val, data[val]);
+                            }
+                        }, 'json');
+                    }, $select.attr('autocomplete_ajax_delay') || 300);
+                } else {
+                    var search = $input.val().trim().toLowerCase().replace(/\W+/g, ' ');
+                    for (var val in options) {
+                        var text = options[val];
+                        if (text.trim().toLowerCase().replace(/\W+/g, ' ').indexOf(search) >= 0) {
+                            appendOption(val, text);
                         }
-                        $li.on('mousedown', function(e){
-                            e.preventDefault();
-                            e.stopPropagation();
-                            $currentAutocompleteOption = $(this);
-                            $currentAutocompleteOption.addClass('active');
-                            selectOption();
-                        });
-                        $ul.append($li);
                     }
                 }
             };

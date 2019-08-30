@@ -22,7 +22,7 @@ class InlineTableEdit {
         die($error?$error:"OK");
     }
 
-    public function loadProperties($source = false) {
+    public function loadProperties($source = false, $fetchXToOneOptions = true) {
         if ($source === false) $source = $this->source;
         if ($source === null) return $this;
         switch (gettype($source)) {
@@ -33,7 +33,7 @@ class InlineTableEdit {
                             $source = $this->source;
                             $this->data = [
                                 'query' => null,
-                                'properties' => $source::getProperties(true),
+                                'properties' => $source::getProperties($fetchXToOneOptions),
                                 'rows' => [],
                             ];
                             return $this;
@@ -51,6 +51,48 @@ class InlineTableEdit {
 
     public function containsData() {
         return !empty($this->data['rows']);
+    }
+
+    public function ajaxAutoCompleteSearch($searchFunction = null/* function($fieldName, $search) */) {
+        if (!empty($_GET['X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD'])) {
+            $field = $_GET['X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD'];
+            $search = trim(@$_GET['search']);
+
+            if (is_callable($searchFunction)) {
+                $results = $searchFunction($field, $search);
+            } else {
+                $this->loadProperties(false, function($fieldName, $columnData, &$query) use($field) {
+                    return $field == $fieldName;
+                });
+                $results = !empty($this->data['properties']['fields'][$field]['null'])? ['' => ''] : [];
+                $options = $this->data['properties']['fields'][$field]['options'];
+                foreach ($options as $option_value => $option_row) {
+                    $text = "$option_row";
+                    $haystack = explode(' ', strtolower(preg_replace("/\W+/", ' ', $text)));
+                    $needles = explode(' ', strtolower(preg_replace("/\W+/", ' ', $search)));
+                    if (!count($needles)) continue;
+                    // All needles must be present (starts with) in haystack
+                    $notFound = false;
+                    foreach ($needles as $needle) {
+                        if ($needle == "") continue;
+                        foreach ($haystack as $word) {
+                            if (strpos($word, $needle) === 0) {
+                                continue 2;
+                            }
+                        }
+                        $notFound = true;
+                    }
+                    if (!$notFound) {
+                        $results[$option_value] = $text;
+                    }
+                }
+            }
+
+            echo json_encode($results);
+            
+            exit;
+        }
+        return $this;
     }
 
     public function loadData($source = false, $orderBy = 'id ASC', $filters = null, $limit = 0, $offset = null) {
@@ -284,8 +326,11 @@ class InlineTableEdit {
         }
         $autocomplete_list = "";
         if (!empty($prop['attributes']['autocomplete'])) {
-            $datalistID = "datalist_".$row['id']."_$fieldName";
-            if ($type != "select") {
+            if ($type == "select") {
+                $autocomplete_list=" autocomplete_list ";
+                include_once(XLIB_PATH.'helpers/select_autocomplete.phtml');
+            } else {
+                $datalistID = "datalist_".$row['id']."_$fieldName";
                 echo '<datalist id="'.$datalistID.'">';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
                     $option_labelField = @$prop['attributes']['options_label'];
@@ -294,10 +339,11 @@ class InlineTableEdit {
                 }
                 echo '</datalist>';
                 $autocomplete_list = " list=\"$datalistID\" ";
-            } else {
-                $autocomplete_list=" autocomplete_list ";
-                include_once(XLIB_PATH.'helpers/select_autocomplete_list.phtml');
             }
+        }
+        if (!empty($prop['attributes']['autocomplete_ajax']) && $type == "select") {
+            $autocomplete_list=' autocomplete_ajax="?X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD='.$fieldName.'" ';
+            include_once(XLIB_PATH.'helpers/select_autocomplete.phtml');
         }
         switch ($type) {
             case 'varchar':
@@ -351,10 +397,12 @@ class InlineTableEdit {
                 echo '<select name="'.$fieldName.'" '.$readonly.$required.$autocomplete_list.'>';
                 if (($value == '' && ($row['id'] != '_NEW_' || $readonly)) || $prop['null']) echo '<option></option>';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
-                    $option_labelField = @$prop['attributes']['options_label'];
-                    $option_label = $option_labelField? $option_row[$option_labelField] : $option_row;
-                    echo '<option '.($value == $option_value ? 'selected':'').' value="'.$option_value.'">'.$option_label.'</option>';
-                }
+                    if (empty($prop['attributes']['autocomplete_ajax']) || $value == $option_value) {
+                        $option_labelField = @$prop['attributes']['options_label'];
+                        $option_label = $option_labelField? $option_row[$option_labelField] : $option_row;
+                        echo '<option '.($value == $option_value ? 'selected':'').' value="'.$option_value.'">'.$option_label.'</option>';
+                    }
+            }
                 echo '</select>';
             break;
             case 'lang':

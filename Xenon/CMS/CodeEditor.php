@@ -47,7 +47,7 @@ class CodeEditor {
                 $this->mimetype = "text/plain";
             break;
         }
-        $this->theme = !empty($_COOKIE['CodeEditorTheme'])? $_COOKIE['CodeEditorTheme'] : $CodeEditorThemes[0];
+        $this->theme = !empty($_COOKIE['CodeEditorTheme'])? $_COOKIE['CodeEditorTheme'] : $this->themes[0];
     }
     public function saveOnPost() {
         if (!empty($_POST['CodeEditor_savefilecontents'])) {

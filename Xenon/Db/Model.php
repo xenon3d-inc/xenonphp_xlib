@@ -110,11 +110,13 @@ class Model implements \ArrayAccess
                 'translatable' => $columnData->translatable,
             ];
             $xToOne = $columnData->manytoone? $columnData->manytoone : $columnData->onetoone;
-            if ($fetchXToOneOptions && $xToOne) {
+            if (((is_bool($fetchXToOneOptions) && $fetchXToOneOptions) || is_callable($fetchXToOneOptions)) && $xToOne) {
                 $query = $xToOne['model']::select();
-                if ($columnData->filter) $query->where(new Expr($columnData->filter));
-                if ($columnData->sort) $query->orderBy($columnData->sort);
-                $properties['fields'][$fieldName]['options'] = $query->fetchAll($xToOne['field']);
+                if (!is_callable($fetchXToOneOptions) || $fetchXToOneOptions($fieldName, $columnData, $query)) {
+                    if ($columnData->filter) $query->where(new Expr($columnData->filter));
+                    if ($columnData->sort) $query->orderBy($columnData->sort);
+                    $properties['fields'][$fieldName]['options'] = $query->fetchAll($xToOne['field']);
+                }
             }
         }
         return $properties;
