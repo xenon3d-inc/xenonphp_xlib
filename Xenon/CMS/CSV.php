@@ -12,7 +12,7 @@ class CSV {
         'error_on_line' => "Error on line __LINE_NUMBER__",
         'obj_updated' => "Row with ID __ID__ has been updated",
         'successfully_saved_n_rows' => "__N_ROWS__ rows were saved successfully",
-        'no_rows_saved_error' => "Nothing has been imported. Please fix errors and try again.",
+        'no_rows_saved_error' => "Nothing has been imported",
     ];
 
     public $config = [
