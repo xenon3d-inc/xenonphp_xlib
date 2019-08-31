@@ -15,7 +15,7 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function ajaxAutoSave(array $customFunctions = []/* array of field => function(value, row, prop, &data) */, $validateSave = null /* Function(&$row, &$error, $values) that returns true to validate row before saving */) {
+    public function ajaxAutoSave(array $customFunctions = []/* array of field => function($value, $row, $prop, &$data, $isCreate) */, $validateSave = null /* Function(&$row, &$error, $values, $isCreate) that returns true to validate row before saving */) {
         if (!AJAX) return $this;
         if (($upload = X_upload())) die($upload);
         $this->saveData($_POST, $error, false, $customFunctions, $validateSave);
@@ -134,7 +134,7 @@ class InlineTableEdit {
         return $this;
     }
 
-    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function(value, row, prop, &data) */, $validateSave = null /* Function(&$row, &$error, $values) that returns true to validate row before saving */) {
+    public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function($value, $row, $prop, &$data, $isCreate) */, $validateSave = null /* Function(&$row, &$error, $values, $isCreate) that returns true to validate row before saving */) {
         if ($source === false) $source = $this->source;
         if ($source === null) {
             $error = "Source Error";
@@ -159,7 +159,7 @@ class InlineTableEdit {
                                             //TODO validate some things like attributes from $prop...
                                             if (isset($customFunctions[$key])) {
                                                 if (is_callable($customFunctions[$key])) {
-                                                    $returnedData[$key] = $customFunctions[$key]($value, $values, $prop, $data);
+                                                    $returnedData[$key] = $customFunctions[$key]($value, $values, $prop, $data, true);
                                                 } else {
                                                     $returnedData[$key] = $customFunctions[$key];
                                                 }
@@ -174,7 +174,7 @@ class InlineTableEdit {
                                         try {
                                             $row = new $source($data);
                                             //TODO other stuff ?
-                                            if (!is_callable($validateSave) || $validateSave($row, $error, $values) === true) {
+                                            if (!is_callable($validateSave) || $validateSave($row, $error, $values, true) === true) {
                                                 $row->save();
                                             } else {
                                                 $error = "Error saving data. $error";
@@ -216,8 +216,12 @@ class InlineTableEdit {
                                                         // Make sure we have the right to edit this field
                                                         if (((!isset($canEdit[$key]) && $defaultCanEdit) || !empty($canEdit[$key])) && empty($prop['attributes']['readonly']) && empty($prop['attributes']['createonly'])) {
                                                             //TODO validate some things like attributes from $prop...
-                                                            if (isset($customFunctions[$key]) && is_callable($customFunctions[$key])) {
-                                                                $row->set($key, $customFunctions[$key]($value, $row, $prop, $data), false);
+                                                            if (isset($customFunctions[$key])) {
+                                                                if (is_callable($customFunctions[$key])) {
+                                                                    $row->set($key, $customFunctions[$key]($value, $row, $prop, $data, false), false);
+                                                                } else {
+                                                                    $row->set($key, $customFunctions[$key], false);
+                                                                }
                                                             } else {
                                                                 $row->set($key, $value, false);
                                                             }
@@ -228,7 +232,7 @@ class InlineTableEdit {
                                                     foreach ($data as $key => $val) {
                                                         $row->set($key, $val);
                                                     }
-                                                    if (!is_callable($validateSave) || $validateSave($row, $error) === true) {
+                                                    if (!is_callable($validateSave) || $validateSave($row, $error, $values, false) === true) {
                                                         $row->save();
                                                     } else {
                                                         $error = "Error saving data. $error";
@@ -304,6 +308,7 @@ class InlineTableEdit {
         $canEdit = (!isset($canEdit[$fieldName]) && $defaultCanEdit) || !empty($canEdit[$fieldName]);
         $readonly = ((!$isAddForm && !$canEdit) || (isset($prop['attributes']['readonly']) || (!$isAddForm && isset($prop['attributes']['createonly']))))? ' readonly ':'';
         $required = ((isset($prop['attributes']['required']) || @$prop['null'] === false) && !$readonly)? ' required ':'';
+        $placeholder = (isset($prop['attributes']['placeholder']))? ' placeholder="'.htmlentities($prop['attributes']['placeholder']).'" ' : '';
         if ($type == 'enum') {
             $type = 'select';
             if (empty($prop['options'])) {
@@ -349,16 +354,16 @@ class InlineTableEdit {
             case 'varchar':
             case 'string':
                 //TODO implement translatable
-                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" maxlength="'.$prop['length'].'" '.$readonly.$required.$autocomplete_list.' />';
+                echo '<input type="text" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="20" maxlength="'.$prop['length'].'" '.$placeholder.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'email':
-                echo '<input type="email" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.$required.$autocomplete_list.' />';
+                echo '<input type="email" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$placeholder.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'phone':
-                echo '<input type="phone" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$readonly.$required.$autocomplete_list.' />';
+                echo '<input type="phone" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="30" maxlength="'.$prop['length'].'" '.$placeholder.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'decimal':
-                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" step="'.(1.0/pow(10, (int)preg_replace("#\d+,\s*(\d+)#","$1",$prop['length']))).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.$required.$autocomplete_list.' />';
+                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" step="'.(1.0/pow(10, (int)preg_replace("#\d+,\s*(\d+)#","$1",$prop['length']))).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$placeholder.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'int':
             case 'tinyint':
@@ -366,10 +371,11 @@ class InlineTableEdit {
             case 'mediumint':
             case 'bigint':
             case 'number':
-                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$readonly.$required.$autocomplete_list.' />';
+                echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$placeholder.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'password':
-                echo '<input type="password" name="'.$fieldName.'" value="" placeholder="New Password" autocomplete="new-password" '.$readonly.$required.' />';
+                if (empty($placeholder)) $placeholder=' placeholder="New Password" ';
+                echo '<input type="password" name="'.$fieldName.'" value="" autocomplete="new-password" '.$placeholder.$readonly.$required.' />';
             break;
             case 'date':
                 echo '<input type="date" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d'):'').'" '.$readonly.$required.$autocomplete_list.' />';
@@ -377,9 +383,13 @@ class InlineTableEdit {
             // case 'create_timestamp':
             // case 'current_timestamp':
             case 'timestamp':
+            case 'datetime':
                 echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'bool':
+                if ($readonly) {
+                    $readonly = "$readonly disabled ";
+                }
                 echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' '.$readonly.$required.' />';
             break;
             case 'image_upload':
@@ -415,7 +425,7 @@ class InlineTableEdit {
             break;
             case 'text':
                 //TODO implement translatable
-                echo '<textarea name="'.$fieldName.'" '.$readonly.$required.$autocomplete_list.'>'.$value.'</textarea>';
+                echo '<textarea name="'.$fieldName.'" '.$placeholder.$readonly.$required.$autocomplete_list.'>'.$value.'</textarea>';
             break;
             case 'array':
                 ?>
@@ -488,7 +498,7 @@ class InlineTableEdit {
         }
     }
 
-    public function generateAddForm(array $customFunctions = []/* array of field => function(value, row, prop, isAddForm)  OR  field => false */, array $row = []) {
+    public function generateAddForm(array $customFunctions = []/* array of field => function($value, $row, $prop, $isAddForm)  OR  field => false */, array $row = []) {
         if (!$this->canCreate) return $this;
         $row['id'] = '_NEW_';
         echo '<form class="inlineEditTable_add" autocomplete="off">';
@@ -519,20 +529,20 @@ class InlineTableEdit {
         echo '<input type="submit" /><br>';
         echo '</form>';
         ?>
-        <?php X_css(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/addform.css", true);?>
-        <?php X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/addform.js", true);?>
+        <?php X_css(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/addform.css");?>
+        <?php X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/addform.js");?>
         <?php 
         return $this;
     }
 
-    public function generateTable(array $customFunctions = []/* array of field => function(value, row, prop, isAddForm) */) {
+    public function generateTable(array $customFunctions = []/* array of field => function($value, $row, $prop, $isAddForm) */) {
         $canView = (array)$this->canView;
         $defaultCanView = (@$canView[0])? true:false;
         X_js(XLIB_PATH.'helpers/ajaxUpload.js');
         echo '<table class="inlineTableEdit">';
         echo '<thead>';
+        echo '<tr>';
             if ((@$canView['id']) !== false) {
-                echo '<tr>';
                 echo '<th>';
                 echo 'ID'; if ($this->canDelete) echo ' / Delete';
                 echo '</th>';
@@ -551,7 +561,7 @@ class InlineTableEdit {
         echo '</thead>';
         echo '<tbody>';
         foreach ($this->data['rows'] as $id => $row) {
-            echo '<tr>';
+            echo '<tr data-id="'.$id.'">';
             if ((@$canView['id']) !== false) {
                 echo '<td data-fieldname="id">';
                 echo $id;
@@ -581,8 +591,8 @@ class InlineTableEdit {
         // echo '</tfoot>';
         echo '</table>';
         ?>
-        <?php X_css(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/table.css", true);?>
-        <?php X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/table.js", true);?>
+        <?php X_css(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/table.css");?>
+        <?php X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/table.js");?>
         <?php
         return $this;
     }
