@@ -14,7 +14,7 @@ function X_inlineTableEdit_removeArrayElement(fieldName, $elem) {
     $arrayfield.parent().find('input[name="'+fieldName+'"]').trigger('change');
 }
 
-function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem) {
+function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options) {
     var $arrayField = $elem.closest('.arrayfield');
     var nextIndex = 0;
     $arrayField.find('[data-i]').each(function(){
@@ -31,23 +31,50 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem) {
     }
     $parent.attr('data-i', nextIndex);
 
-    var appendField = function(inputName, structure, nbfields, $parent) {
+    var appendField = function(inputName, structure, nbfields, $parent, options) {
+        options = options || {};
         switch (typeof structure) {
             case 'string':
+                var fieldName = inputName.replace(/^(.*\[)?(\w+)\]?$/, '$2');
                 var attributes = {
-                    label: inputName.replace(/^(.*\[)?(\w+)\]?$/, '$2').replace('_', ' ').trim(),
+                    label: fieldName.replace('_', ' ').trim(),
                 };
                 if (structure.match(/^\w+\?/)) {
                     $.extend(attributes, decodeQueryString(structure.replace(/^(\w+)\?(.*)$/, '$2')));
                     structure = structure.replace(/^(\w+)\?(.*)$/, '$1');
                 }
+
+                if (!attributes['placeholder'] && structure === 'timer') attributes['placeholder'] = '00:00';
+                if (!attributes['placeholder']) attributes['placeholder'] = attributes['label'];
                 var autocompleteValue = 'false_'+inputName.replace(/[\]\[]+/g, '_');
+                if (structure == 'checkbox') {
+                    $('<input>').appendTo($parent)
+                        .attr('type', 'hidden')
+                        .attr('name', inputName)
+                        .attr('value', '0')
+                    ;
+                }
                 switch (structure) {
                     default:
                         $('<input>').appendTo($parent)
                             .attr('type', structure || 'text')
                             .attr('name', inputName)
-                            .attr('placeholder', attributes.label)
+                            .attr('data-field', fieldName)
+                            .attr('placeholder', attributes.placeholder)
+                            .attr('title', attributes.label)
+                            .attr('autocomplete', autocompleteValue)
+                            .attr('data-nbfields', nbfields)
+                            .attr('value', structure=='checkbox'?'1':'')
+                        ;
+                    break;
+                    case 'decimal':
+                        $('<input>').appendTo($parent)
+                            .attr('type', 'number')
+                            .attr('step', '0.01')
+                            .attr('min', '0.0')
+                            .attr('name', inputName)
+                            .attr('data-field', fieldName)
+                            .attr('placeholder', attributes.placeholder)
                             .attr('title', attributes.label)
                             .attr('autocomplete', autocompleteValue)
                             .attr('data-nbfields', nbfields)
@@ -57,33 +84,59 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem) {
                     case 'textarea':
                         $('<textarea>').appendTo($parent)
                             .attr('name', inputName)
-                            .attr('placeholder', attributes.label)
+                            .attr('data-field', fieldName)
+                            .attr('placeholder', attributes.placeholder)
                             .attr('title', attributes.label)
                             .attr('autocomplete', autocompleteValue)
                             .attr('data-nbfields', nbfields)
                         ;
                     break;
+                    case 'select':
+                        var $select = $('<select>').appendTo($parent)
+                        .attr('name', inputName)
+                        .attr('data-field', fieldName)
+                        .attr('title', attributes.label)
+                        .attr('autocomplete', autocompleteValue)
+                        .attr('data-nbfields', nbfields)
+                        ;
+                        if (attributes.autocomplete_ajax) {
+                            $select.attr('autocomplete_ajax', attributes.autocomplete_ajax);
+                        }
+                        attributes.options = attributes.options? attributes.options.split(',') : [];
+                        for (var i in attributes.options) {
+                            $('<option>').appendTo($select)
+                                .attr('value', attributes.options[i])
+                                .text(attributes.options[i])
+                            ;
+                        }
+                        for (var i in options) {
+                            $('<option>').appendTo($select)
+                                .attr('value', i)
+                                .text(options[i])
+                            ;
+                        }
+                    break;
                 }
             break;
             case 'object':
                 if (structure === null) {
-                    appendField(inputName, '', 1, $parent);
+                    appendField(inputName, '', 1, $parent, options);
                 } else {
                     if ($parent[0].tagName == 'TR') {
-                        for (var i in structure) {
+                        for (var k in structure) {
                             var $td = $('<td>').appendTo($parent);
-                            appendField(inputName+'['+i+']', structure[i], Object.keys(structure).length, $td);
+                            appendField(inputName+'['+k+']', structure[k], Object.keys(structure).length, $td, options[k]);
                         }
                     } else {
-                        for (var i in structure) {
-                            appendField(inputName+'['+i+']', structure[i], Object.keys(structure).length, $parent);
+                        for (var k in structure) {
+                            appendField(inputName+'['+k+']', structure[k], Object.keys(structure).length, $parent, options[k]);
                         }
                     }
                 }
             break;
         }
     };
-    appendField(fieldName+'['+nextIndex+']', structure, 1, $parent);
+    appendField(fieldName+'['+nextIndex+']', structure, 1, $parent, options);
     
     $parent.find('input').get(0).focus();
 

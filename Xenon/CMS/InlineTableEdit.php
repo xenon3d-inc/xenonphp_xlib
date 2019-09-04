@@ -272,26 +272,54 @@ class InlineTableEdit {
     }
 
     // MUST ALSO EDIT arrayElements.js::X_inlineTableEdit_addArrayElement()
-    public static function outputObjectArrayField($inputName, $structure, $val, $nbFields = 1) {
+    public static function outputObjectArrayField($inputName, $structure, $val, $nbFields = 1, $options = []) {
         X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/arrayElements.js");
         switch (gettype($structure)) {
             case 'string':
+                $fieldName = preg_replace("/^(.*\[)?(\w+)\]?$/", '$2', $inputName);
                 $attributes = [
-                    'label' => ucfirst(trim(str_replace('_', ' ', preg_replace("/^(.*\[)?(\w+)\]?$/", '$2', $inputName)))),
+                    'label' => ucfirst(trim(str_replace('_', ' ', $fieldName))),
                 ];
                 if (preg_match("/^(\w+)\?(.*)$/", $structure, $matches)) {
                     parse_str($matches[2], $attrs);
                     $attributes = $attrs + $attributes;
                     $structure = $matches[1];
                 }
+                if (!isset($attributes['placeholder']) && $structure === 'timer') $attributes['placeholder'] = '00:00';
+                if (!isset($attributes['placeholder'])) $attributes['placeholder'] = $attributes['label'];
                 $autocompleteValue = "false_".preg_replace("/[\]\[]+/", '_', $inputName);
+                if ($structure == 'checkbox') {?>
+                <input type="hidden" name="<?=$inputName?>" value="0">
+                <?php }
                 switch ($structure) {
                     default:
                         ?>
                         <input 
                             type="<?=$structure!==''?$structure:'text'?>" 
-                            name="<?=$inputName?>" 
-                            placeholder="<?=$attributes['label']?>" 
+                            name="<?=$inputName?>"
+                            data-field="<?=$fieldName?>"
+                            placeholder="<?=$attributes['placeholder']?>" 
+                            title="<?=$attributes['label']?>" 
+                            autocomplete="<?=$autocompleteValue?>" 
+                            data-nbfields="<?=$nbFields?>"
+                            <?php if ($structure == 'checkbox') {?>
+                                value="1"
+                                <?php if ($val) echo 'checked';?>
+                            <?php } else {?>
+                                value="<?=$val?>"
+                            <?php }?>
+                            />
+                        <?php
+                    break;
+                    case 'decimal':
+                        ?>
+                        <input 
+                            type="number" 
+                            step="0.01"
+                            min="0.0"
+                            name="<?=$inputName?>"
+                            data-field="<?=$fieldName?>"
+                            placeholder="<?=$attributes['placeholder']?>" 
                             title="<?=$attributes['label']?>" 
                             autocomplete="<?=$autocompleteValue?>" 
                             data-nbfields="<?=$nbFields?>"
@@ -302,22 +330,50 @@ class InlineTableEdit {
                     case 'textarea':
                         ?>
                         <textarea 
-                            name="<?=$inputName?>" 
-                            placeholder="<?=$attributes['label']?>" 
+                            name="<?=$inputName?>"
+                            data-field="<?=$fieldName?>"
+                            placeholder="<?=$attributes['placeholder']?>" 
                             title="<?=$attributes['label']?>" 
                             autocomplete="<?=$autocompleteValue?>" 
                             data-nbfields="<?=$nbFields?>"
                             ><?=$val?></textarea>
                         <?php
                     break;
+                    case 'select':
+                        $attributes['options'] = isset($attributes['options'])? explode(',', $attributes['options']) : [];
+                        if (!empty($attributes['autocomplete_ajax'])) {
+                            $options = [
+                                "$val" => isset($options[$val])? $options[$val] : $val,
+                            ];
+                        }
+                        ?>
+                        <select 
+                            name="<?=$inputName?>"
+                            data-field="<?=$fieldName?>"
+                            title="<?=$attributes['label']?>" 
+                            autocomplete="<?=$autocompleteValue?>" 
+                            <?php if (!empty($attributes['autocomplete_ajax'])) {?>
+                            autocomplete_ajax="<?=$attributes['autocomplete_ajax']?>" 
+                            <?php }?>
+                            data-nbfields="<?=$nbFields?>"
+                            >
+                            <?php foreach ($attributes['options'] as $option) {?>
+                                <option <?php if ($val == $option) echo 'selected'; ?> value="<?=$option?>"><?=$option?></option>
+                            <?php }?>
+                            <?php foreach ((array)$options as $v=>$option) {?>
+                                <option <?php if ($val == $v) echo 'selected'; ?> value="<?=$v?>"><?=$option?></option>
+                            <?php }?>
+                        </select>
+                        <?php
+                    break;
                 }
             break;
             case 'NULL':
-                self::outputObjectArrayField($inputName, '', $val);
+                self::outputObjectArrayField($inputName, '', $val, 1, $options);
             break;
             case 'array':
                 if ($nbFields == 1) foreach ($structure as $key=>$type) {
-                    self::outputObjectArrayField($inputName."[$key]", $type, $val[$key], count($structure));
+                    self::outputObjectArrayField($inputName."[$key]", $type, @$val[$key], count($structure), @$options[$key]);
                 }
             break;
         }
@@ -412,6 +468,11 @@ class InlineTableEdit {
             case 'number':
                 echo '<input type="number" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="'.(ceil((int)$prop['length']/2)+1).'" '.$placeholder.$readonly.$required.$autocomplete_list.' />';
             break;
+            case 'timer':
+                X_js(XLIB_PATH."helpers/inputTimer.js");
+                if (empty($placeholder)) $placeholder=' placeholder="00:00" ';
+                echo '<input type="timer" name="'.$fieldName.'" value="'.htmlspecialchars($value).'" size="5" '.$placeholder.$readonly.$required.$autocomplete_list.' />';
+            break;
             case 'password':
                 if (empty($placeholder)) $placeholder=' placeholder="New Password" ';
                 echo '<input type="password" name="'.$fieldName.'" value="" autocomplete="new-password" '.$placeholder.$readonly.$required.' />';
@@ -473,6 +534,12 @@ class InlineTableEdit {
                 ?>
                 <input type="hidden" name="<?=$fieldName?>" value="">
                 <?php
+                $options = !empty($prop['options'])? $prop['options'] : [];
+                foreach ($options as $f => &$opts) {
+                    if (preg_match("/autocomplete_ajax/", @$prop['structure'][$f])) {
+                        $opts = [];
+                    }
+                }
                 if (is_array(@$prop['structure']) && count($prop['structure']) > 2) {
                     echo '<table class="arrayfield"><thead><tr>';
                     foreach ($prop['structure'] as $key=>$structure) {
@@ -492,7 +559,7 @@ class InlineTableEdit {
                             <tr data-i="<?=$i?>">
                                 <?php foreach ($prop['structure'] as $key=>$structure) {?>
                                     <td>
-                                        <?php self::outputObjectArrayField($fieldName."[$i][$key]", $structure, $val[$key]);?>
+                                        <?php self::outputObjectArrayField($fieldName."[$i][$key]", $structure, @$val[$key], count($prop['structure']), @$prop['options'][$key]);?>
                                     </td>
                                 <?php } ?>
                                 <td>
@@ -505,7 +572,7 @@ class InlineTableEdit {
                     ?>
                     <tr>
                         <td colspan="<?=count($prop['structure'])+1?>">
-                            <a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=str_replace('"', "'", json_encode(@$prop['structure']))?>, $(this))"><i class="fas fa-plus"></i></a>
+                            <a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=str_replace('"', "'", json_encode(@$prop['structure']))?>, $(this), <?=str_replace('"', "'", json_encode($options))?>)"><i class="fas fa-plus"></i></a>
                         </td>
                     </tr>
                     <?php 
@@ -516,20 +583,20 @@ class InlineTableEdit {
                         <?php if ($value) foreach ((array)$value as $i=>$val) {?>
                             <div data-i="<?=$i?>">
                                 <?php
-                                self::outputObjectArrayField($fieldName."[$i]", @$prop['structure'], $val);
+                                self::outputObjectArrayField($fieldName."[$i]", @$prop['structure'], $val, 1, @$prop['options']);
                                 ?>
                                 <i onclick="X_inlineTableEdit_removeArrayElement('<?=$fieldName?>', $(this))" class="fas fa-times"></i>
                             </div>
                             <?php
                         }
                         ?>
-                        <a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=str_replace('"', "'", json_encode(@$prop['structure']))?>, $(this))"><i class="fas fa-plus"></i></a>
+                        <a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=str_replace('"', "'", json_encode(@$prop['structure']))?>, $(this), <?=str_replace('"', "'", json_encode($options))?>)"><i class="fas fa-plus"></i></a>
                     </div>
                     <?php 
                 }
             break;
             case 'object':
-                self::outputObjectArrayField($fieldName, @$prop['structure'], $value);
+                self::outputObjectArrayField($fieldName, @$prop['structure'], $value, 1, @$prop['options']);
             break;
             case 'wysiwyg':
                 static $ckeditor_preloaded = false;

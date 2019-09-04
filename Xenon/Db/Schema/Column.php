@@ -42,7 +42,7 @@ class Column
                                 //      label, hint, readonly, createonly, required, options_label, type, strip_tags, placeholder, checkbox, autocomplete, autocomplete_ajax ...
                                 // Attribute's value is TRUE if no value is specified
                                 // The type attribute overrides the column's type and can be anything, including : 
-                                //      bool, select, varchar, email, phone, decimal, number, password, date, timestamp, lang, text, wysiwyg
+                                //      bool, select, varchar, email, phone, decimal, number, timer, password, date, timestamp, lang, text, wysiwyg
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
