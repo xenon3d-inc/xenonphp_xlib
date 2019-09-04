@@ -10,6 +10,8 @@ class InlineTableEdit {
     public $canEdit = [true]; // Associative Array of field=>bool that can be edited or not. First bool element is default when field not specified.
     public $canView = [true]; // Associative Array of field=>bool that can be viewed or not. First bool element is default when field not specified.
 
+    protected static $uniqueDomIDs = [];
+
     public function __construct($source = null) {
         $this->source = $source;
         return $this;
@@ -269,45 +271,76 @@ class InlineTableEdit {
         $this->data['properties']['fields'][$fieldName]['options'] = $options;
     }
 
-    public static function outputObjectArrayField($name, $structure, $val, $nbFields = 1) {
+    // MUST ALSO EDIT arrayElements.js::X_inlineTableEdit_addArrayElement()
+    public static function outputObjectArrayField($inputName, $structure, $val, $nbFields = 1) {
+        X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/arrayElements.js");
         switch (gettype($structure)) {
             case 'string':
+                $attributes = [
+                    'label' => ucfirst(trim(str_replace('_', ' ', preg_replace("/^(.*\[)?(\w+)\]?$/", '$2', $inputName)))),
+                ];
+                if (preg_match("/^(\w+)\?(.*)$/", $structure, $matches)) {
+                    parse_str($matches[2], $attrs);
+                    $attributes = $attrs + $attributes;
+                    $structure = $matches[1];
+                }
+                $autocompleteValue = "false_".preg_replace("/[\]\[]+/", '_', $inputName);
                 switch ($structure) {
                     default:
                         ?>
-                        <input type="<?=$structure!==''?$structure:'text'?>" name="<?=$name?>" value="<?=$val?>" autocomplete="false_<?=$name?>" data-nbfields="<?=$nbFields?>">
+                        <input 
+                            type="<?=$structure!==''?$structure:'text'?>" 
+                            name="<?=$inputName?>" 
+                            placeholder="<?=$attributes['label']?>" 
+                            title="<?=$attributes['label']?>" 
+                            autocomplete="<?=$autocompleteValue?>" 
+                            data-nbfields="<?=$nbFields?>"
+                            value="<?=$val?>" 
+                            />
                         <?php
                     break;
                     case 'textarea':
                         ?>
-                        <textarea name="<?=$name?>" autocomplete="false_<?=$name?>" data-nbfields="<?=$nbFields?>"><?=$val?></textarea>
+                        <textarea 
+                            name="<?=$inputName?>" 
+                            placeholder="<?=$attributes['label']?>" 
+                            title="<?=$attributes['label']?>" 
+                            autocomplete="<?=$autocompleteValue?>" 
+                            data-nbfields="<?=$nbFields?>"
+                            ><?=$val?></textarea>
                         <?php
                     break;
                 }
             break;
             case 'NULL':
-                self::outputObjectArrayField($name, '', $val);
+                self::outputObjectArrayField($inputName, '', $val);
             break;
             case 'array':
-                foreach ($structure as $key=>$type) {
-                    self::outputObjectArrayField($name."[$key]", $type, $val[$key], count($structure));
+                if ($nbFields == 1) foreach ($structure as $key=>$type) {
+                    self::outputObjectArrayField($inputName."[$key]", $type, $val[$key], count($structure));
                 }
             break;
         }
     }
 
-    public function generateField($row, $fieldName, $prop = null, $isAddForm = false) {
-        if ($prop === null) $prop = $this->data['properties']['fields'][$fieldName];
-        $type = isset($prop['attributes']['type'])? $prop['attributes']['type'] : $prop['dataType'];
-        $value = @$row[$fieldName];
-        if (isset($prop['attributes']['strip_tags'])) {
+    public static function generateInputField($fieldName, $prop = 'text', $value = null) {
+        if (!is_array($prop)) {
+            $prop_str = $prop;
+            $prop = [
+                'dataType' => preg_replace("/^(\w+)(\W.*)$/", "$1", strtolower(trim($prop_str))),
+            ];
+            if (preg_match("/^(\w+)\?(.*)$/", $prop_str, $matches)) {
+                parse_str($matches[2], $attrs);
+                $attributes = $attrs + $attributes;
+                $structure = $matches[1];
+            }
+        }
+        $readonly = !empty($prop['attributes']['readonly'])? ' readonly ':'';
+        $required = !empty($prop['attributes']['required'])? ' required ':'';
+        if (!empty($prop['attributes']['strip_tags'])) {
             $value = strip_tags($value);
         }
-        $canEdit = (array)$this->canEdit;
-        $defaultCanEdit = (@$canEdit[0])? true:false;
-        $canEdit = (!isset($canEdit[$fieldName]) && $defaultCanEdit) || !empty($canEdit[$fieldName]);
-        $readonly = ((!$isAddForm && !$canEdit) || (isset($prop['attributes']['readonly']) || (!$isAddForm && isset($prop['attributes']['createonly']))))? ' readonly ':'';
-        $required = ((isset($prop['attributes']['required']) || @$prop['null'] === false) && !$readonly)? ' required ':'';
+        $type = isset($prop['attributes']['type'])? $prop['attributes']['type'] : (isset($prop['dataType'])?$prop['dataType']:$prop['type']);
         $placeholder = (isset($prop['attributes']['placeholder']))? ' placeholder="'.htmlentities($prop['attributes']['placeholder']).'" ' : '';
         if ($type == 'enum') {
             $type = 'select';
@@ -320,12 +353,7 @@ class InlineTableEdit {
         } else if (@$prop['handler'] == 'manytoone' || @$prop['handler'] == 'onetoone') {
             $type = 'select';
         }
-        if (isset($prop['attributes']['checkbox'])) {
-            ?>
-            <input type="checkbox" class="checkboxToActivateField" name="<?=$fieldName?>" value="" onchange="$(this).next().find('input,textarea').prop('disabled', !$(this).prop('checked'));" <?=$value?'checked':''?>>
-            <div>
-            <?php
-        }
+
         if (!isset($prop['length'])) {
             $prop['length'] = 255;
         }
@@ -335,14 +363,17 @@ class InlineTableEdit {
                 $autocomplete_list=" autocomplete_list ";
                 include_once(XLIB_PATH.'helpers/select_autocomplete.phtml');
             } else {
-                $datalistID = "datalist_".$row['id']."_$fieldName";
-                echo '<datalist id="'.$datalistID.'">';
-                if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
-                    $option_labelField = @$prop['attributes']['options_label'];
-                    $option_label = $option_labelField? $option_row[$option_labelField] : $option_row;
-                    echo '<option value="'.htmlspecialchars($option_value).'" label="'.htmlspecialchars($option_label).'" />';
+                $datalistID = "datalist_$fieldName";
+                if (!isset(self::$uniqueDomIDs[$datalistID])) {
+                    self::$uniqueDomIDs[$datalistID] = true;
+                    echo '<datalist id="'.$datalistID.'">';
+                    if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
+                        $option_labelField = @$prop['attributes']['options_label'];
+                        $option_label = $option_labelField? $option_row[$option_labelField] : $option_row;
+                        echo '<option value="'.htmlspecialchars($option_value).'" label="'.htmlspecialchars($option_label).'" />';
+                    }
+                    echo '</datalist>';
                 }
-                echo '</datalist>';
                 $autocomplete_list = " list=\"$datalistID\" ";
             }
         }
@@ -350,6 +381,14 @@ class InlineTableEdit {
             $autocomplete_list=' autocomplete_ajax="?X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD='.$fieldName.'" ';
             include_once(XLIB_PATH.'helpers/select_autocomplete.phtml');
         }
+
+        if (!empty($prop['attributes']['checkbox'])) {
+            ?>
+            <input type="checkbox" class="checkboxToActivateField" name="<?=$fieldName?>" value="" onchange="$(this).next().find('input,textarea').prop('disabled', !$(this).prop('checked'));" <?=$value?'checked':''?>>
+            <div>
+            <?php
+        }
+
         switch ($type) {
             case 'varchar':
             case 'string':
@@ -387,6 +426,7 @@ class InlineTableEdit {
                 echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'bool':
+            case 'checkbox':
                 if ($readonly) {
                     $readonly = "$readonly disabled ";
                 }
@@ -405,7 +445,7 @@ class InlineTableEdit {
                     echo '<input type="hidden" name="'.$fieldName.'" value="'.htmlspecialchars($value).'">';
                 }
                 echo '<select name="'.$fieldName.'" '.$readonly.$required.$autocomplete_list.'>';
-                if (($value == '' && ($row['id'] != '_NEW_' || $readonly)) || $prop['null']) echo '<option></option>';
+                if ($value == '' || !empty($prop['null'])) echo '<option></option>';
                 if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
                     if (empty($prop['attributes']['autocomplete_ajax']) || $value == $option_value) {
                         $option_labelField = @$prop['attributes']['options_label'];
@@ -417,36 +457,79 @@ class InlineTableEdit {
             break;
             case 'lang':
                 echo '<select name="'.$fieldName.'" '.$readonly.$required.'>';
-                if ($value == '' && $row['id'] != '_NEW_') echo '<option></option>';
+                if ($value == '' || !empty($prop['null'])) echo '<option></option>';
                 foreach (explode('|', LANGS) as $lang) {
                     echo '<option '.($value == $lang ? 'selected':'').' value="'.$lang.'">'.$lang.'</option>';
                 }
                 echo '</select>';
             break;
             case 'text':
+            case 'textarea':
                 //TODO implement translatable
                 echo '<textarea name="'.$fieldName.'" '.$placeholder.$readonly.$required.$autocomplete_list.'>'.$value.'</textarea>';
             break;
             case 'array':
+                X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/arrayElements.js");
                 ?>
                 <input type="hidden" name="<?=$fieldName?>" value="">
                 <?php
-                if ($value) foreach ((array)$value as $i=>$val) {
+                if (is_array(@$prop['structure']) && count($prop['structure']) > 2) {
+                    echo '<table class="arrayfield"><thead><tr>';
+                    foreach ($prop['structure'] as $key=>$structure) {
+                        $attributes = [
+                            'label' => ucfirst(trim(str_replace('_', ' ', $key))),
+                        ];
+                        if (preg_match("/^(\w+)\?(.*)$/", $structure, $matches)) {
+                            parse_str($matches[2], $attrs);
+                            $attributes = $attrs + $attributes;
+                        }
+                        echo '<th>'.$attributes['label'].'</th>';
+                    }
+                    echo '<th></th></tr></thead><tbody>';
+                    if ($value) {
+                        foreach ((array)$value as $i=>$val) {
+                            ?>
+                            <tr data-i="<?=$i?>">
+                                <?php foreach ($prop['structure'] as $key=>$structure) {?>
+                                    <td>
+                                        <?php self::outputObjectArrayField($fieldName."[$i][$key]", $structure, $val[$key]);?>
+                                    </td>
+                                <?php } ?>
+                                <td>
+                                    <i onclick="X_inlineTableEdit_removeArrayElement('<?=$fieldName?>', $(this))" class="fas fa-times"></i>
+                                </td>
+                            </tr>
+                            <?php
+                        }
+                    }
                     ?>
-                    <div data-i="<?=$i?>">
-                        <?php
-                        self::outputObjectArrayField($fieldName."[$i]", $prop['structure'], $val);
+                    <tr>
+                        <td colspan="<?=count($prop['structure'])+1?>">
+                            <a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=str_replace('"', "'", json_encode(@$prop['structure']))?>, $(this))"><i class="fas fa-plus"></i></a>
+                        </td>
+                    </tr>
+                    <?php 
+                    echo '</tbody></table>';
+                } else {
+                    ?>
+                    <div class="arrayfield">
+                        <?php if ($value) foreach ((array)$value as $i=>$val) {?>
+                            <div data-i="<?=$i?>">
+                                <?php
+                                self::outputObjectArrayField($fieldName."[$i]", @$prop['structure'], $val);
+                                ?>
+                                <i onclick="X_inlineTableEdit_removeArrayElement('<?=$fieldName?>', $(this))" class="fas fa-times"></i>
+                            </div>
+                            <?php
+                        }
                         ?>
-                        <i onclick="X_inlineTableEdit_removeArrayElement('<?=$fieldName?>', $(this))" class="fas fa-times"></i>
+                        <a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=str_replace('"', "'", json_encode(@$prop['structure']))?>, $(this))"><i class="fas fa-plus"></i></a>
                     </div>
-                    <?php
+                    <?php 
                 }
-                ?>
-                <a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=str_replace('"', "'", json_encode($prop['structure']))?>, $(this))"><i class="fas fa-plus"></i></a>
-                <?php
             break;
             case 'object':
-                self::outputObjectArrayField($fieldName, $prop['structure'], $value);
+                self::outputObjectArrayField($fieldName, @$prop['structure'], $value);
             break;
             case 'wysiwyg':
                 static $ckeditor_preloaded = false;
@@ -487,15 +570,31 @@ class InlineTableEdit {
                     style="display: inline-block; outline: dotted 2px grey; min-width: 200px; min-height: 30px; margin: 2px;"
                     onclick="wysiwyg_CKEditor_inline_edit(this, event);"
                     onblur="$(this).trigger(\'change\');"
-                    >'.$value.'</div>';
+                    >'.$value.'</tr>';
             break;
             default:
                 if (!empty($prop['attributes']['readonly'])) echo $value;
             break;
         }
-        if (isset($prop['attributes']['checkbox'])) {
+        if (!empty($prop['attributes']['checkbox'])) {
             echo "</div>";
         }
+    }
+
+    public function generateField($row, $fieldName, $prop = null, $isAddForm = false) {
+        if ($prop === null) $prop = $this->data['properties']['fields'][$fieldName];
+        $canEdit = (array)$this->canEdit;
+        $defaultCanEdit = (@$canEdit[0])? true:false;
+        $canEdit = (!isset($canEdit[$fieldName]) && $defaultCanEdit) || !empty($canEdit[$fieldName]);
+        $readonly = (!$isAddForm && !$canEdit) || (!empty($prop['attributes']['readonly']) || (!$isAddForm && !empty($prop['attributes']['createonly'])));
+        $required = (!empty($prop['attributes']['required']) || @$prop['null'] === false) && !$readonly;
+        $prop['attributes']['readonly'] = $readonly;
+        $prop['attributes']['required'] = $required;
+        $value = @$row[$fieldName];
+        if ($isAddForm && $value === null) {
+            $value = isset($prop['attributes']['default'])? $prop['attributes']['default'] : @$prop['default'];
+        }
+        self::generateInputField($fieldName, $prop, $value);
     }
 
     public function generateAddForm(array $customFunctions = []/* array of field => function($value, $row, $prop, $isAddForm)  OR  field => false */, array $row = []) {

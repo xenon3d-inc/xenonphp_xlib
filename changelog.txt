@@ -1,4 +1,4 @@
-0.8.0 - 2019-08-30
+0.8.0 - 2019-09-03
     Added CodeEditor
     Added Xenon\CMS\CSV class for import/export functionality
     Improved Xenon\CMS\InlineTableEdit (potentially breaking changes)
