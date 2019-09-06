@@ -4,10 +4,22 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
     global $X_CONFIG;
 
     $to = array_filter((array)$to, 'trim');
-    if (empty($to)) {
+    if (!trim($to)) {
         if (DEV) die("No recipient given for email with subject $subject");
         return false;
     }
+
+    $filterDontSend = function($email) {
+        if (!trim($email)) return false;
+        if (strpos(trim($email), '__DONTSEND__') == 0) {
+            return false;
+        }
+        return true;
+    };
+
+    $to = array_filter((array)$to, $filterDontSend);
+    $cc = array_filter((array)$cc, $filterDontSend);
+    $bcc = array_filter((array)$bcc, $filterDontSend);
 
     $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
     try {
@@ -39,9 +51,14 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
         $mail->Subject = $subject;
         $mail->Body = $body;
         
-        foreach ((array) $to as $to) if (trim($to)) $mail->addAddress(trim($to));
-        if (!empty($cc))  foreach ((array) $cc as $cc)   if (trim($cc))  $mail->addCC(trim($cc));
-        if (!empty($bcc)) foreach ((array) $bcc as $bcc) if (trim($bcc)) $mail->addBcc(trim($bcc));
+        if (empty($to)) {
+            // __DONTSEND__ : just ignore it, no error
+            return true;
+        }
+
+        foreach ($to as $to) if (trim($to)) $mail->addAddress(trim($to));
+        if (!empty($cc))  foreach ($cc as $cc)   if (trim($cc))  $mail->addCC(trim($cc));
+        if (!empty($bcc)) foreach ($bcc as $bcc) if (trim($bcc)) $mail->addBcc(trim($bcc));
 
         $mail->send();
         return true;

@@ -12,8 +12,13 @@ class Route {
     public $routeParams = array();
     public $method = null;
     public $login = null;
+    public $layout = null;
 
     public $executed = false;
+
+    public $domain = null;
+    public $subdomain = null;
+    public $port = null;
 
     public static $currentInstance = null;
     protected $url = ROUTE_URL;
@@ -34,6 +39,12 @@ class Route {
             ){ // Return 404 if any function returns false
             $this->return404();
         }
+
+        $this->layout = @$this->routes[$this->route]['layout'];
+
+        $this->domain = @$this->routes[$this->route]['domain'];
+        $this->subdomain = @$this->routes[$this->route]['subdomain'];
+        $this->port = @$this->routes[$this->route]['port'];
     }
 
     public function setView($view) {

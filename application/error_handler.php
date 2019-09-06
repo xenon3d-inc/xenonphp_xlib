@@ -28,8 +28,12 @@ function X_error_handler($type, $message, $file, $line, $vars) {
             case E_USER_DEPRECATED: if(error_reporting()) $errorType = "E_USER_DEPRECATED";break;
         }
         if ($errorType) {
-            echo "<br>$errorType: $message in '$file' on line $line<br>";
-            debug_print_backtrace();
+            echo "<pre class='error'>\n\n ";
+                echo "<i>$errorType</i>: <u>$message</u> in '<b>$file</b>' on line $line\n\n";
+                echo "<small>";
+                    debug_print_backtrace();
+                echo "</small>";
+            echo "\n\n</pre>";
         }
     }
 }
