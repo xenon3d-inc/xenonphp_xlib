@@ -136,6 +136,36 @@ class InlineTableEdit {
         return $this;
     }
 
+    public function validateValue($value, $prop, &$error) {
+        // regexp
+        if (isset($prop['attributes']['regexp']) && !preg_match($prop['attributes']['regexp'], $value)) {
+            $error = "Invalid format";
+            return false;
+        }
+        // minlength
+        if (isset($prop['attributes']['minlength']) && strlen($value) < (int)$prop['attributes']['minlength']) {
+            $error = "Value must contain at least ".$prop['attributes']['minlength']." characters";
+            return false;
+        }
+        // maxlength
+        if (isset($prop['attributes']['maxlength']) && strlen($value) > (int)$prop['attributes']['maxlength']) {
+            $error = "Value must contain at least ".$prop['attributes']['maxlength']." characters";
+            return false;
+        }
+        // min
+        if (isset($prop['attributes']['min']) && (double)$value < (double)$prop['attributes']['min']) {
+            $error = "Value must be >= ".$prop['attributes']['min'];
+            return false;
+        }
+        // max
+        if (isset($prop['attributes']['max']) && (double)$value > (double)$prop['attributes']['max']) {
+            $error = "Value must be <= ".$prop['attributes']['max'];
+            return false;
+        }
+
+        return true;
+    }
+
     public function saveData($values, &$error = null, $source = false, array $customFunctions = []/* array of field => function($value, $row, $prop, &$data, $isCreate) */, $validateSave = null /* Function(&$row, &$error, $values, $isCreate) that returns true to validate row before saving */) {
         if ($source === false) $source = $this->source;
         if ($source === null) {
@@ -158,19 +188,22 @@ class InlineTableEdit {
                                         $returnedData = [];
                                         foreach ($values as $key => $value) {
                                             $prop = $properties['fields'][$key];
-                                            //TODO validate some things like attributes from $prop...
                                             if (isset($customFunctions[$key])) {
                                                 if (is_callable($customFunctions[$key])) {
-                                                    $returnedData[$key] = $customFunctions[$key]($value, $values, $prop, $data, true);
+                                                    $value = $customFunctions[$key]($value, $values, $prop, $data, true);
                                                 } else {
-                                                    $returnedData[$key] = $customFunctions[$key];
+                                                    $value = $customFunctions[$key];
                                                 }
                                             } else {
                                                 if (isset($prop['attributes']['strip_tags'])) {
                                                     $value = strip_tags($value);
                                                 }
-                                                $returnedData[$key] = $value;
+                                                
                                             }
+
+                                            // Validate
+                                            if (!$this->validateValue($value, $prop, $error)) return;
+                                            $returnedData[$key] = $value;
                                         }
                                         $data += $returnedData;
                                         try {
@@ -217,16 +250,17 @@ class InlineTableEdit {
                                                         $prop = $properties['fields'][$key];
                                                         // Make sure we have the right to edit this field
                                                         if (((!isset($canEdit[$key]) && $defaultCanEdit) || !empty($canEdit[$key])) && empty($prop['attributes']['readonly']) && empty($prop['attributes']['createonly'])) {
-                                                            //TODO validate some things like attributes from $prop...
                                                             if (isset($customFunctions[$key])) {
                                                                 if (is_callable($customFunctions[$key])) {
-                                                                    $row->set($key, $customFunctions[$key]($value, $row, $prop, $data, false), false);
+                                                                    $value = $customFunctions[$key]($value, $row, $prop, $data, false);
                                                                 } else {
-                                                                    $row->set($key, $customFunctions[$key], false);
+                                                                    $value = $customFunctions[$key];
                                                                 }
-                                                            } else {
-                                                                $row->set($key, $value, false);
                                                             }
+
+                                                            // Validate
+                                                            if (!$this->validateValue($value, $prop, $error)) return;
+                                                            $row->set($key, $value, false);
                                                         } else {
                                                             throw new \Exception("Permission denied to edit the field $key");
                                                         }

@@ -15,7 +15,7 @@ class Database
      * @param hash array $options {host, user, pass, db}
      * @param array of string $models
      */
-    public function __construct(array $options, array $models = []) {
+    public function __construct(array $options, array $models = [], $autoUpdateStructure = DB_AUTO_UPDATE_STRUCTURE) {
         $this->db = mysqli_connect($options['host'], $options['user'], $options['pass'], $options['db']);
         if (!empty($options['charset'])) {
             mysqli_query($this->db, "SET NAMES ".$options['charset']);
@@ -26,7 +26,7 @@ class Database
                 return;
             }
 
-            if (DB_AUTO_UPDATE_STRUCTURE) {
+            if ($autoUpdateStructure) {
                 $updateTime = date('YmdHis');
                 $query = (new \Xenon\Db\Schema\ModelData())->fromModel($model)->getCreateOrAlterQuery($this->db);
                 if ($query) {

@@ -118,19 +118,19 @@ class Select extends \Xenon\Db\Query
     }
 
     public function where(...$args) {
-        if ($this->where) $this->where->where($this->model, ...$args);
+        if ($this->where) $this->where->where(...$args);
         else $this->where = new Where($this->model, ...$args);
         return $this;
     }
 
     public function andWhere(...$args) {
-        if ($this->where) $this->where->andWhere($this->model, ...$args);
+        if ($this->where) $this->where->andWhere(...$args);
         else $this->where = new Where($this->model, ...$args);
         return $this;
     }
 
     public function orWhere(...$args) {
-        if ($this->where) $this->where->orWhere($this->model, ...$args);
+        if ($this->where) $this->where->orWhere(...$args);
         else $this->where = new Where($this->model, ...$args);
         return $this;
     }

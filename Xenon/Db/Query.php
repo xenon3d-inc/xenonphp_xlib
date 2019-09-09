@@ -161,18 +161,12 @@ class Query
                 $val = [];
                 if (is_array($valuefield)) {
                     foreach ($valuefield as $key => $field) {
-                        if (is_int($key)) $key = $field;
                         if (is_string($field)) {
+                            if (is_int($key)) $key = $field;
                             $val[$key] = $row->$field;
                         } else if (is_callable($field)) {
                             $val[$key] = $field($row);
                         }
-                    }
-                } else {
-                    if (is_string($field)) {
-                        $val = $row->$field;
-                    } else if (is_callable($field)) {
-                        $val = $field($row);
                     }
                 }
             } else {

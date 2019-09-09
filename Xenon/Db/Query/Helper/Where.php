@@ -88,28 +88,29 @@ class Where {
     }
     
     public function where(...$args) {
-        $this->addWhere(new Where(...$args));
+        return $this->addWhere(new Where($this->model, ...$args));
     }
     
     public function andWhere(...$args) {
-        $this->addWhere(new Where(...$args), 'AND');
+        return $this->addWhere(new Where($this->model, ...$args), 'AND');
     }
     
     public function orWhere(...$args) {
-        $this->addWhere(new Where(...$args), 'OR');
+        return $this->addWhere(new Where($this->model, ...$args), 'OR');
     }
     
     protected function addWhere(Where $where, $op = 'AND') {
         if ($this->where !== '') $this->where .= " $op ";
         $this->where .= $where;
         $this->orderByPriority["$where"] = "DESC";
+        return $this;
     }
 
     public static function fromArray($model, array $arr) {
         $where = new \Xenon\Db\Query\Helper\Where($model);
         foreach ($arr as $key => $value) {
-            if (is_numeric($key)) $where->andWhere($model, $value);
-            else $where->andWhere($model, $key, $value);
+            if (is_numeric($key)) $where->andWhere($value);
+            else $where->andWhere($key, $value);
         }
         return $where;
     }

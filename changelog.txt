@@ -1,6 +1,8 @@
-0.8.0 - 2019-09-06
+0.8.0 - 2019-09-09
     Added CodeEditor
     Added Xenon\CMS\CSV class for import/export functionality
+    Improved Xenon\DB\Query\Helper\Where (potentially breaking changes)
+        Where::andWhere()... first param is not the $model anymore, pass condition args directly and now uses the Where instance's $this->model instead
     Improved Xenon\CMS\InlineTableEdit (potentially breaking changes)
         added arrays and objects
         added more supported attributes
