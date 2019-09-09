@@ -11,7 +11,7 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
 
     $filterDontSend = function($email) {
         if (!trim($email)) return false;
-        if (strpos(trim($email), '__DONTSEND__') == 0) {
+        if (strpos(trim($email), '__DONTSEND__') === 0) {
             return false;
         }
         return true;
