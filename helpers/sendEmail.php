@@ -4,7 +4,7 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
     global $X_CONFIG;
 
     $to = array_filter((array)$to, 'trim');
-    if (!trim($to)) {
+    if (!$to) {
         if (DEV) die("No recipient given for email with subject $subject");
         return false;
     }

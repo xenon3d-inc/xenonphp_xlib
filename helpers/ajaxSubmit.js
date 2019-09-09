@@ -1,7 +1,7 @@
 // ajaxSubmit <?php
 /*
  * Ajax Form Submit, by Olivier St-Laurent
- * Version 1.1
+ * Version 1.2
  *
  *
  * Usage :
@@ -12,11 +12,16 @@
  *///?>
 
 function ajaxSubmit(elem, event, successCallback, errorCallback) {
+    if (!elem.nodeName) elem = elem[0];
+    if (!elem) {
+        console.log("Invalid element");
+        return;
+    }
     switch (elem.nodeName) {
         case 'INPUT':
         case 'TEXTAREA':
         case 'SELECT':
-            $(elem.form).submit();
+            ajaxSubmit(elem.form);
             break;
         case 'FORM':
             var $form = $(elem);

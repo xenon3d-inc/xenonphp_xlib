@@ -491,6 +491,7 @@ class InlineTableEdit {
                 if ($readonly) {
                     $readonly = "$readonly disabled ";
                 }
+                echo '<input type="hidden" name="'.$fieldName.'" value="0" />';
                 echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' '.$readonly.$required.' />';
             break;
             case 'image_upload':
