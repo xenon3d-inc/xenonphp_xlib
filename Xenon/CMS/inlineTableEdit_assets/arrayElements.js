@@ -144,7 +144,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
         $parent = $('<td>').appendTo($parent);
     }
 
-    $('<i>').attr('class', 'fas fa-times').on('click', function(){
+    $('<i>').appendTo($parent).attr('class', 'fas fa-times').on('click', function(){
         X_inlineTableEdit_removeArrayElement(fieldName, $(this));
-    }).appendTo($parent);
+    });
 }

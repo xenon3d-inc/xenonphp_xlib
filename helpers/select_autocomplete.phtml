@@ -1,15 +1,13 @@
 <!-- BEGIN select_autocomplete_list -->
 <style>
-    div.autocomplete_list {
-        position: relative;
-    }
     div.autocomplete_list > input[type="text"] {
-        text-align: left;
+        
     }
     div.autocomplete_list ul {
         position: absolute;
         list-style: none;
-        min-width: 100%;
+        width: auto;
+        min-width: inherit;
         min-height: 20px;
         box-shadow: 0px 10px 20px 10px #555;
         background-color: #ccc;
@@ -68,10 +66,38 @@
             });
             var selectedOptionValue = $select.val() || '';
             var selectionOptionLabel = options[selectedOptionValue] || selectedOptionValue;
-            $select.addClass('autocompletion_activated').hide();
             var $div = $('<div class="autocomplete_list">').insertAfter($select);
             var $ul = $('<ul>').appendTo($div);
-            var $input = $('<input type="text">').prependTo($div).val(selectionOptionLabel).focus().select()
+            var $input = $('<input type="text">').prependTo($div).val(selectionOptionLabel).focus().select();
+
+            $div.css({
+                position: $select.css('position'),
+                left: $select.css('left'),
+                top: $select.css('top'),
+                right: $select.css('right'),
+                bottom: $select.css('bottom'),
+                float: $select.css('float'),
+                display: $select.css('display'),
+                width: $select.css('width'),
+                'min-width': $select.css('width'),
+                height: $select.css('height'),
+                margin: 0,
+                padding: 0,
+                border: 'none',
+            });
+            $input.css({
+                width: '100%',
+                height: '100%',
+                margin: $select.css('margin'),
+                padding: $select.css('padding'),
+                border: $select.css('border'),
+                color: $select.css('color'),
+                'font-size': $select.css('font-size'),
+                'background-color': $select.css('background-color'),
+            });
+
+            $select.addClass('autocompletion_activated').hide();
+
             var $currentAutocompleteOption = null;
             var removeAutocompleteList = function(){
                 $select.removeClass('autocompletion_activated').show();

@@ -35,6 +35,11 @@ class Select extends \Xenon\Db\Query
                 ;
     }
     
+    public function __clone() {
+        parent::__clone();
+        if (is_object($this->where)) $this->where = clone $this->where;
+    }
+
     public function addFields($fields) {
         if (!is_array($fields)) {
             $fields = [$fields];

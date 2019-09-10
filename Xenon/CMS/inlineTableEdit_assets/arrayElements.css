@@ -1,0 +1,29 @@
+table.arrayfield {
+    max-width: 100%;
+}
+
+div.arrayfield [data-i] {
+    clear: both;
+    width: 100%;
+    margin: 2px auto;
+}
+div.arrayfield [data-i] [data-field] {
+    min-width: initial;
+    width: 90%;
+    display: inline-block;
+}
+div.arrayfield [data-i] [data-nbfields="2"] {
+    width: 46%;
+}
+div.arrayfield [data-i] i.fa-times {
+    width: 5%;
+    padding: 5px;
+}
+
+form.inlineEditTable_add div.arrayfield [data-i] {
+    min-width: 200px;
+}
+
+table.arrayfield input[type="number"] {
+    min-width: 60px;
+}

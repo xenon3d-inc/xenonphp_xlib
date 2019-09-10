@@ -34,6 +34,10 @@ class Query
         return $this->query;
     }
 
+    public function __clone() {
+        
+    }
+
     public function expr($expression, ...$args) {
         return new Query\Helper\Expr($expression, $this->model, ...$args);
     }

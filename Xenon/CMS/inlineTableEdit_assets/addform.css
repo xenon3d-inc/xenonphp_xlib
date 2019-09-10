@@ -36,27 +36,6 @@ form.inlineEditTable_add input[type="submit"] {
     margin: 20px auto;
     border: solid 1px #aaa;
 }
-form.inlineEditTable_add div[data-i] {
-    min-width: 200px;
-    width: 100%;
-    clear: both;
-}
-form.inlineEditTable_add div[data-i] > input {
-    min-width: initial;
-    width: 90%;
-    float: left;
-}
-form.inlineEditTable_add div[data-i] > input:nth-child(1) {
-    clear: both;
-}
-form.inlineEditTable_add div[data-i] > input[data-nbfields="2"] {
-    width: 46%;
-}
-form.inlineEditTable_add div[data-i] i.fa-times {
-    width: 5%;
-    float: left;
-    padding: 5px;
-}
 form.inlineEditTable_add a.add {
     display: inline-block;
     clear: both;

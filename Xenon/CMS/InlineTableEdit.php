@@ -307,6 +307,7 @@ class InlineTableEdit {
 
     // MUST ALSO EDIT arrayElements.js::X_inlineTableEdit_addArrayElement()
     public static function outputObjectArrayField($inputName, $structure, $val, $nbFields = 1, $options = []) {
+        X_css(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/arrayElements.css");
         X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/arrayElements.js");
         switch (gettype($structure)) {
             case 'string':
@@ -565,6 +566,7 @@ class InlineTableEdit {
                 echo '<textarea name="'.$fieldName.'" '.$placeholder.$readonly.$required.$autocomplete_list.'>'.$value.'</textarea>';
             break;
             case 'array':
+                X_css(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/arrayElements.css");
                 X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/arrayElements.js");
                 ?>
                 <input type="hidden" name="<?=$fieldName?>" value="">
