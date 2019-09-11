@@ -256,7 +256,7 @@ class Route {
             }
             ksort($params, SORT_NUMERIC);
         }
-        $params = (is_array($params) && count($params)) ? '/' . implode('/', $params) : "";
+        $params = (is_array($params) && count($params)) ? ('/' . implode('/', $params)) : "";
 
         // GET Params
         $queryString = '';
@@ -330,7 +330,8 @@ class Route {
         }
 
         // FINAL URL
-        return $host_url.$baseURL.$this->getRouteUrlFromRouteKey($route, $lang).$params.$queryString;
+        $url = $baseURL.$this->getRouteUrlFromRouteKey($route, $lang).$params;
+        return $host_url.preg_replace("#/+#",'/',$url).$queryString;
     }
 
     public function return404() {
