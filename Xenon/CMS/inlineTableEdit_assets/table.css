@@ -75,7 +75,6 @@ table.inlineTableEdit td div[data-i] > input[data-nbfields="2"] {
 }
 table.inlineTableEdit td div[data-i] i.fa-times {
     width: 5%;
-    float: left;
     padding: 5px;
     line-height: 30px;
 }

@@ -58,7 +58,7 @@
     var X_select_autocomplete_jqxhr = null;
     $(document)
         .off('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated), select[autocomplete_ajax]:not(.autocompletion_activated)')
-        .on('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated), select[autocomplete_ajax]:not(.autocompletion_activated)', function(){
+        .on('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated), select[autocomplete_ajax]:not(.autocompletion_activated)', function(event){
             var $select = $(this);
             var options = {};
             $select.find('option').each(function(){
@@ -137,7 +137,11 @@
                     if (X_select_autocomplete_jqxhr) X_select_autocomplete_jqxhr.abort();
                     if (X_select_autocomplete_timeout) clearTimeout(X_select_autocomplete_timeout);
                     X_select_autocomplete_timeout = setTimeout(function(){
-                        X_select_autocomplete_jqxhr = $.get($select.attr('autocomplete_ajax'), {
+                        var url = $select.attr('autocomplete_ajax');
+                        if (url.substr(0, 11) == 'javascript:') {
+                            url = eval(url.substr(11));
+                        }
+                        X_select_autocomplete_jqxhr = $.get(url, {
                             'search': search,
                         }, function(data){
                             X_select_autocomplete_jqxhr = null;

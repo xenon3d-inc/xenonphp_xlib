@@ -101,6 +101,8 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                         ;
                         if (attributes.autocomplete_ajax) {
                             $select.attr('autocomplete_ajax', attributes.autocomplete_ajax);
+                        } else if (typeof attributes.autocomplete_ajax !== 'undefined') {
+                            $select.attr('autocomplete_ajax', options);
                         }
                         attributes.options = attributes.options? attributes.options.split(',') : [];
                         for (var i in attributes.options) {
@@ -109,7 +111,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                                 .text(attributes.options[i])
                             ;
                         }
-                        for (var i in options) {
+                        if (typeof options === 'object') for (var i in options) {
                             $('<option>').appendTo($select)
                                 .attr('value', i)
                                 .text(options[i])
@@ -138,7 +140,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
     };
     appendField(fieldName+'['+nextIndex+']', structure, 1, $parent, options);
     
-    $parent.find('input').get(0).focus();
+    $parent.find('input,select').get(0).focus();
 
     if ($parent[0].tagName == 'TR') {
         $parent = $('<td>').appendTo($parent);

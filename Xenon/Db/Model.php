@@ -406,6 +406,7 @@ class Model implements \ArrayAccess
     }
 
     public function set($name, $value, $lang = null) {
+        if (!$name) return;
         if ($this->_lazyLoad) $this->reload();
         $this->_dirty = true;
         $func = "set_" . $name;

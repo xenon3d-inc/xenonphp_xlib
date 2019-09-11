@@ -5,7 +5,6 @@ form.inlineEditTable_add {
     background-color: #eee;
 }
 form.inlineEditTable_add > label {
-    display: inline-block;
     margin: 10px;
     width: 250px;
     float: left;

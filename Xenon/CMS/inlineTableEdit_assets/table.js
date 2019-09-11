@@ -30,7 +30,7 @@ $(document).on('change.autosave', '.inlineTableEdit input[name], .inlineTableEdi
                 if (this.tagName == "INPUT" && this.type == "checkbox") {
                     value = $(this).prop('checked')? 1:0;
                 }
-                if (typeof value === 'object' && Object.keys(value).length == 0) value = "";
+                if (typeof value === 'object' && value !== null && Object.keys(value).length == 0) value = "";
                 if (typeof value === 'undefined') value = "";
                 if (!$(this).prop('disabled')) data[$(this).attr('name')] = value;
             }

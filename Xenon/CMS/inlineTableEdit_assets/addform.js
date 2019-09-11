@@ -16,3 +16,6 @@ $(document).on('submit', 'form.inlineEditTable_add', function(e){
         }
     });
 });
+$(document).on('click', 'form.inlineEditTable_add label', function(e){
+    e.preventDefault();
+});
