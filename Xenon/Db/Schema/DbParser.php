@@ -80,7 +80,17 @@ class DbParser
 
                     // DEFAULT
                     if (preg_match("#DEFAULT ('(.*)'|([0-9a-z_]+( ?\([a-z0-9 ,\._-]*\))?))( |,|$)#i", $options, $matches)) {
-                        $columns[$columnName]['default'] = (strtolower($matches[3]) === 'null') ? null : $matches[2] . strtolower($matches[3]);
+                        switch (strtolower($matches[3])) {
+                            case 'null':
+                                $columns[$columnName]['default'] = null;
+                            break;
+                            case 'current_timestamp':
+                                $columns[$columnName]['default'] = 'current_timestamp()';
+                            break;
+                            default: 
+                                $columns[$columnName]['default'] = $matches[2] . strtolower($matches[3]);
+                            break;
+                        }
                     }
 
                     // ON UPDATE
