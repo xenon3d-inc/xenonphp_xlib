@@ -81,6 +81,18 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                             .attr('value', '')
                         ;
                     break;
+                    case 'timer':
+                        $('<input>').appendTo($parent)
+                            .attr('type', 'timer')
+                            .attr('name', inputName)
+                            .attr('data-field', fieldName)
+                            .attr('placeholder', '00:00')
+                            .attr('title', attributes.label)
+                            .attr('autocomplete', autocompleteValue)
+                            .attr('data-nbfields', nbfields)
+                            .attr('value', '')
+                        ;
+                    break;
                     case 'textarea':
                         $('<textarea>').appendTo($parent)
                             .attr('name', inputName)

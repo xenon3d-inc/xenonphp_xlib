@@ -397,7 +397,7 @@ class Model implements \ArrayAccess
                 } else {
                     trigger_error("Handler static method '$handler_func' not defined in model ".get_called_class(), E_USER_ERROR);
                 }
-            } else if (isset($this->_original_values[$name])) {
+            } else if (array_key_exists($name, $this->_original_values)) {
                 return $this->_original_values[$name];
             } else {
                 trigger_error("Column '$name' not found in model ".get_called_class(), E_USER_ERROR);

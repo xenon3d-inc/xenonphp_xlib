@@ -13,7 +13,6 @@ $(document).on('mousedown mouseup', 'input[type="timer"]', function(e){
 });
 $(document).on('keydown', 'input[type="timer"]', function(e){
     var k = e.keyCode;
-    console.log(k);
     if ((k >= 48 && k <= 57) || (k >= 96 && k <= 105)) {
         var n = (k>57? k-96 : k-48);
         // Number input

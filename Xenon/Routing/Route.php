@@ -234,6 +234,10 @@ class Route {
     public function getUrl($route, $routeParams = [], $getparams = [], $lang = true, $canonical = false) {
         if ($route === true) $route = $this->route;
         if ($routeParams === true) $routeParams = $this->routeParams;
+        else if (is_array($routeParams) && count($routeParams) > 1 && isset($routeParams[0]) && $routeParams[0] === true) {
+            array_shift($routeParams);
+            $routeParams += (array)$this->routeParams;
+        }
         elseif (!is_array($routeParams)) $routeParams = [$routeParams];
         if ($getparams === true) $getparams = $this->params;
         if ($lang === true) $lang = $this->lang;

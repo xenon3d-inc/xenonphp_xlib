@@ -359,6 +359,19 @@ class InlineTableEdit {
                             value="<?=$val?>" 
                             /><?php
                     break;
+                    case 'timer':
+                        ?><input 
+                            type="timer" 
+                            name="<?=$inputName?>"
+                            data-field="<?=$fieldName?>"
+                            placeholder="00:00" 
+                            title="<?=$attributes['label']?>" 
+                            autocomplete="<?=$autocompleteValue?>" 
+                            data-nbfields="<?=$nbFields?>"
+                            <?=$readonly?>
+                            value="<?=$val?>" 
+                            /><?php
+                    break;
                     case 'textarea':
                         ?><textarea 
                             name="<?=$inputName?>"
