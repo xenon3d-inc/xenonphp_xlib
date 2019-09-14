@@ -49,7 +49,7 @@ class Route {
 
     public function setView($view) {
         $this->view = $view;
-        $this->viewFile = VIEW_PATH.$this->view.'.phtml';
+        $this->viewFile = is_array($view)? array_map(function($v){return VIEW_PATH.$v.'.phtml';}, $this->view) : (VIEW_PATH.$view.'.phtml');
     }
 
     public function setRoute($route, $routeParams = null) {
@@ -102,7 +102,7 @@ class Route {
             }
             if ($this->route !== null) {
                 $this->setView($this->route);
-                if (!is_file($this->viewFile) && preg_match("#".preg_quote(ADMIN_URL_COMPONENT)."/#", $this->view) ) {
+                if (is_string($this->viewFile) && !is_file($this->viewFile) && preg_match("#".preg_quote(ADMIN_URL_COMPONENT)."/#", $this->view) ) {
                     $this->setView(str_replace(ADMIN_URL_COMPONENT.'/', '', $this->view));
                 }
                 break;
@@ -115,7 +115,7 @@ class Route {
         $this->method = METHOD;
         if (isset($this->routes[$this->route]['login'])) $this->login = $this->routes[$this->route]['login'];
         // Add string keys to route params
-        if (!empty($this->routeParams) && is_array($this->routeParams) && !empty($this->routes[$this->route]) && is_array($this->routes[$this->route]['params'])) {
+        if (!empty($this->routeParams) && is_array($this->routeParams) && !empty($this->routes[$this->route]) && is_array(@$this->routes[$this->route]['params'])) {
             foreach ($this->routeParams as $index => $val) {
                 $key = $this->routes[$this->route]['params'][$index];
                 if (is_string($key)) $this->routeParams[explode(':',$key)[0]] = $val;
@@ -248,7 +248,7 @@ class Route {
         // Route Params
         $params = $routeParams;
         // Check if the routeParams array is associative
-        if (is_array($params) && count(array_filter(array_keys($params), 'is_string')) > 0 && is_array($this->routes[$route]['params'])) {
+        if (is_array($params) && count(array_filter(array_keys($params), 'is_string')) > 0 && is_array(@$this->routes[$route]['params'])) {
             $params = [];
             foreach ($routeParams as $key => $val) {
                 foreach ($this->routes[$route]['params'] as $i => $p) {
@@ -363,14 +363,6 @@ class Route {
     }
 
     public function getRouteParam($index = 0, $default = null) {
-        // if (!is_numeric($index) && !empty($this->routes[$this->route]['params']) && is_array($this->routes[$this->route]['params'])) {
-        //     foreach ($this->routes[$this->route]['params'] as $i => $val) {
-        //         if ($val == $index) {
-        //             $index = $i;
-        //             break;
-        //         }
-        //     }
-        // }
         return isset($this->routeParams[$index]) ? $this->routeParams[$index] : $default;
     }
 
@@ -401,7 +393,7 @@ class Route {
     }
 
     public function execute() {
-        global $X, $X_LAYOUT, $X_PROJECT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_VIEW_RETURN;
+        global $X, $X_LAYOUT, $X_PROJECT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_VIEW_RETURN, $X_VARS;
 
         // Allowed Methods
         if (!empty($this->routes[$this->route]['methods'])) {
@@ -417,12 +409,20 @@ class Route {
 
         // Custom View
         if (!empty($this->routes[$this->route]['view'])) {
-            $this->setView($this->parseRouteParamsString($this->routes[$this->route]['view']));
+            if (is_array($this->routes[$this->route]['view'])) {
+                $this->setView(array_map([$this, 'parseRouteParamsString'], $this->routes[$this->route]['view']));
+            } else {
+                $this->setView($this->parseRouteParamsString($this->routes[$this->route]['view']));
+            }
         }
 
         // Custom Layout
         if (isset($this->routes[$this->route]['layout'])) {
-            $X_LAYOUT = $this->parseRouteParamsString($this->routes[$this->route]['layout']);
+            if (is_array($this->routes[$this->route]['layout'])) {
+                $X_LAYOUT = array_map([$this, 'parseRouteParamsString'], $this->routes[$this->route]['layout']);
+            } else {
+                $X_LAYOUT = $this->parseRouteParamsString($this->routes[$this->route]['layout']);
+            }
         }
 
         // Route Callable Function
@@ -452,9 +452,23 @@ class Route {
             $X_TITLE = $this->parseRouteParamsString($X_TITLE);
         }
 
+        // Fill X_VARS (will translate to variable names directly accessible from any X_included file like View and Layout)
+        if (!empty($this->routes[$this->route]['vars'])) {
+            foreach ((array)$this->routes[$this->route]['vars'] as $key => $val) {
+                if (!is_numeric($key)) $X_VARS[$key] = $val;
+            }
+        }
+
         // Validate View File exists
-        if (!is_file($this->viewFile)) {
-            $this->return404();
+        if (is_array($this->viewFile)) {
+            $this->viewFile = array_filter($this->viewFile, function($v){return is_file($v);});
+            if (empty($this->viewFile)) {
+                $this->return404();
+            }
+        } else {
+            if (!is_file($this->viewFile)) {
+                $this->return404();
+            }
         }
 
         $this->executed = true;
@@ -463,10 +477,14 @@ class Route {
     }
 
     public function outputView() {
-        global $X, $X_LAYOUT, $X_PROJECT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_VIEW_RETURN;
+        global $X, $X_LAYOUT, $X_PROJECT, $X_TITLE, $X_PAGETITLE, $X_VIEW_CONTENT, $X_VIEW_RETURN, $X_VARS;
+
+        // Validate view file
+        $viewFile = is_array($this->viewFile)? reset($this->viewFile) : $this->viewFile;
+        if (empty($viewFile)) $this->return404();
 
         // Get View Content
-        $X_VIEW_CONTENT = X_include_return($this->viewFile, false, false, $X_VIEW_RETURN);
+        $X_VIEW_CONTENT = X_include_return($viewFile, false, false, $X_VIEW_RETURN);
 
         // Handle View Return Code
         if (!empty($X_VIEW_RETURN) && is_numeric($X_VIEW_RETURN) && $X_VIEW_RETURN >= 100 && $X_VIEW_RETURN < 600) {
@@ -481,7 +499,12 @@ class Route {
 
         // Page Layout
         if (!empty($X_LAYOUT)) {
-            X_include(LAYOUT_PATH.$X_LAYOUT.".phtml");
+            if (is_array($X_LAYOUT)) {
+                $X_LAYOUT = @array_filter($X_LAYOUT, function($l){return is_file(LAYOUT_PATH.$X_LAYOUT.".phtml");})[0];
+                if (empty($X_LAYOUT)) $this->return404();
+            } else {
+                X_include(LAYOUT_PATH.$X_LAYOUT.".phtml");
+            }
         } else {
             echo $X_VIEW_CONTENT;
         }
