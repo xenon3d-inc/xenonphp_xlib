@@ -325,98 +325,141 @@ class InlineTableEdit {
                 $autocompleteValue = "false_".preg_replace("/[\]\[]+/", '_', $inputName);
                 if ($structure == 'checkbox') {?><input type="hidden" name="<?=$inputName?>" value="0"><?php }
                 if ($readonly) $readonly = " readonly disabled ";
-                switch ($structure) {
-                    default:
-                        ?><input 
-                            type="<?=$structure!==''?$structure:'text'?>" 
+                if ($readonly && $structure != 'select' && $structure != 'link') {
+                    ?>
+                    <span 
+                    data-nbfields="<?=$nbFields?>" 
+                    title="<?=$attributes['label']?>" 
+                    ><?=htmlspecialchars($val)?></span>
+                    <?php
+                } else {
+                    switch ($structure) {
+                        default:
+                            ?><input 
+                                type="<?=$structure!==''?$structure:'text'?>" 
+                                name="<?=$inputName?>"
+                                data-field="<?=$fieldName?>"
+                                placeholder="<?=$attributes['placeholder']?>" 
+                                title="<?=$attributes['label']?>" 
+                                autocomplete="<?=$autocompleteValue?>" 
+                                data-nbfields="<?=$nbFields?>"
+                                <?=$readonly?>
+                                <?php if ($structure == 'checkbox') {?>
+                                    value="1"
+                                    <?php if ($val) echo 'checked';?>
+                                <?php } else {?>
+                                    value="<?=htmlspecialchars($val)?>"
+                                <?php }?>
+                                /><?php
+                        break;
+                        case 'info':
+                            ?><input 
+                            type="text" 
                             name="<?=$inputName?>"
                             data-field="<?=$fieldName?>"
                             placeholder="<?=$attributes['placeholder']?>" 
                             title="<?=$attributes['label']?>" 
                             autocomplete="<?=$autocompleteValue?>" 
                             data-nbfields="<?=$nbFields?>"
-                            <?=$readonly?>
-                            <?php if ($structure == 'checkbox') {?>
-                                value="1"
-                                <?php if ($val) echo 'checked';?>
-                            <?php } else {?>
-                                value="<?=$val?>"
-                            <?php }?>
+                            value="<?=htmlspecialchars($val)?>"
                             /><?php
-                    break;
-                    case 'decimal':
-                        ?><input 
-                            type="number" 
-                            step="0.01"
-                            min="0.0"
-                            name="<?=$inputName?>"
-                            data-field="<?=$fieldName?>"
-                            placeholder="<?=$attributes['placeholder']?>" 
-                            title="<?=$attributes['label']?>" 
-                            autocomplete="<?=$autocompleteValue?>" 
-                            data-nbfields="<?=$nbFields?>"
-                            <?=$readonly?>
-                            value="<?=$val?>" 
-                            /><?php
-                    break;
-                    case 'timer':
-                        ?><input 
-                            type="timer" 
-                            name="<?=$inputName?>"
-                            data-field="<?=$fieldName?>"
-                            placeholder="00:00" 
-                            title="<?=$attributes['label']?>" 
-                            autocomplete="<?=$autocompleteValue?>" 
-                            data-nbfields="<?=$nbFields?>"
-                            <?=$readonly?>
-                            value="<?=$val?>" 
-                            /><?php
-                    break;
-                    case 'textarea':
-                        ?><textarea 
-                            name="<?=$inputName?>"
-                            data-field="<?=$fieldName?>"
-                            placeholder="<?=$attributes['placeholder']?>" 
-                            title="<?=$attributes['label']?>" 
-                            autocomplete="<?=$autocompleteValue?>" 
-                            data-nbfields="<?=$nbFields?>"
-                            <?=$readonly?>
-                            ><?=$val?></textarea><?php
-                    break;
-                    case 'select':
-                        $attributes['options'] = isset($attributes['options'])? explode(',', $attributes['options']) : [];
-                        if (!empty($attributes['autocomplete_ajax'])) {
-                            $options = [
-                                "$val" => isset($options[$val])? $options[$val] : $val,
-                            ];
-                        } else if (isset($attributes['autocomplete_ajax'])) {
-                            $attributes['autocomplete_ajax'] = $options;
-                        }
-                        ?><select 
-                            name="<?=$inputName?>"
-                            data-field="<?=$fieldName?>"
-                            title="<?=$attributes['label']?>" 
-                            autocomplete="<?=$autocompleteValue?>" 
-                            <?php if (!empty($attributes['autocomplete_ajax'])) {?>
-                            autocomplete_ajax="<?=$attributes['autocomplete_ajax']?>" 
-                            <?php }?>
-                            data-nbfields="<?=$nbFields?>"
-                            <?=$readonly?>
-                            >
-                            <?php foreach ($attributes['options'] as $option) {?>
-                                <option <?php if ($val == $option) echo 'selected'; ?> value="<?=$option?>"><?=$option?></option>
-                            <?php }?>
-                            <?php if (is_array($options)) { foreach ($options as $v=>$label) {
-                                if (is_callable($optionLabel)) {
-                                    $label = @$optionLabel($v, $label, $val);
-                                }
+                        break;
+                        case 'link':
+                            if ($readonly) {
                                 ?>
-                                <option <?php if ($val == $v) echo 'selected'; ?> value="<?=$v?>"><?=$label?></option>
-                            <?php }} else if (empty($attributes['options'])) {?>
-                                <option selected value="<?=$val?>"><?=is_callable($optionLabel)? @$optionLabel($val, $val, $val) : $val?></option>
-                            <?php }?>
-                        </select><?php
-                    break;
+                                <a href="<?=$val?>" 
+                                data-nbfields="<?=$nbFields?>" 
+                                title="<?=$attributes['label']?>" 
+                                target="_blank"
+                                ><?=isset($attributes['text'])?$attributes['text']:htmlspecialchars($val)?></a>
+                                <?php
+                            } else {
+                                ?><input 
+                                type="text" 
+                                name="<?=$inputName?>"
+                                data-field="<?=$fieldName?>"
+                                placeholder="<?=$attributes['placeholder']?>" 
+                                title="<?=$attributes['label']?>" 
+                                autocomplete="<?=$autocompleteValue?>" 
+                                data-nbfields="<?=$nbFields?>"
+                                value="<?=htmlspecialchars($val)?>"
+                                /><?php
+                            }
+                        break;
+                        case 'decimal':
+                            ?><input 
+                                type="number" 
+                                step="0.01"
+                                min="0.0"
+                                name="<?=$inputName?>"
+                                data-field="<?=$fieldName?>"
+                                placeholder="<?=$attributes['placeholder']?>" 
+                                title="<?=$attributes['label']?>" 
+                                autocomplete="<?=$autocompleteValue?>" 
+                                data-nbfields="<?=$nbFields?>"
+                                <?=$readonly?>
+                                value="<?=htmlspecialchars($val)?>" 
+                                /><?php
+                        break;
+                        case 'timer':
+                            ?><input 
+                                type="timer" 
+                                name="<?=$inputName?>"
+                                data-field="<?=$fieldName?>"
+                                placeholder="00:00" 
+                                title="<?=$attributes['label']?>" 
+                                autocomplete="<?=$autocompleteValue?>" 
+                                data-nbfields="<?=$nbFields?>"
+                                <?=$readonly?>
+                                value="<?=htmlspecialchars($val)?>" 
+                                /><?php
+                        break;
+                        case 'textarea':
+                            ?><textarea 
+                                name="<?=$inputName?>"
+                                data-field="<?=$fieldName?>"
+                                placeholder="<?=$attributes['placeholder']?>" 
+                                title="<?=$attributes['label']?>" 
+                                autocomplete="<?=$autocompleteValue?>" 
+                                data-nbfields="<?=$nbFields?>"
+                                <?=$readonly?>
+                                ><?=htmlspecialchars($val)?></textarea><?php
+                        break;
+                        case 'select':
+                            $attributes['options'] = isset($attributes['options'])? explode(',', $attributes['options']) : [];
+                            if (!empty($attributes['autocomplete_ajax'])) {
+                                $options = [
+                                    "$val" => isset($options[$val])? $options[$val] : $val,
+                                ];
+                            } else if (isset($attributes['autocomplete_ajax'])) {
+                                $attributes['autocomplete_ajax'] = $options;
+                            }
+                            ?><select 
+                                name="<?=$inputName?>"
+                                data-field="<?=$fieldName?>"
+                                title="<?=$attributes['label']?>" 
+                                autocomplete="<?=$autocompleteValue?>" 
+                                <?php if (!empty($attributes['autocomplete_ajax'])) {?>
+                                autocomplete_ajax="<?=$attributes['autocomplete_ajax']?>" 
+                                <?php }?>
+                                data-nbfields="<?=$nbFields?>"
+                                <?=$readonly?>
+                                >
+                                <?php foreach ($attributes['options'] as $option) {?>
+                                    <option <?php if ($val == $option) echo 'selected'; ?> value="<?=$option?>"><?=$option?></option>
+                                <?php }?>
+                                <?php if (is_array($options)) { foreach ($options as $v=>$label) {
+                                    if (is_callable($optionLabel)) {
+                                        $label = @$optionLabel($v, $label, $val);
+                                    }
+                                    ?>
+                                    <option <?php if ($val == $v) echo 'selected'; ?> value="<?=$v?>"><?=$label?></option>
+                                <?php }} else if (empty($attributes['options'])) {?>
+                                    <option selected value="<?=htmlspecialchars($val)?>"><?=is_callable($optionLabel)? @$optionLabel($val, $val, $val) : $val?></option>
+                                <?php }?>
+                            </select><?php
+                        break;
+                    }
                 }
             break;
             case 'NULL':
