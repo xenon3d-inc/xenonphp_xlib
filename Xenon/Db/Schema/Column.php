@@ -119,6 +119,12 @@ class Column
             $this->handler = 'string';
             return;
         }
+        if (preg_match("#^(mediumtext)$#i", $value)) {
+            $this->type = 'mediumtext';
+            $this->length = null;
+            $this->handler = 'string';
+            return;
+        }
         // Number
         if (preg_match("#^(int|tinyint|smallint|mediumint|bigint) *\(?([0-9]+)\)?$#i", $value, $matches)) {
             $this->type = $matches[1];
@@ -235,14 +241,14 @@ class Column
         }
         // Json
         if (preg_match("#^(json)$#i", $value)) {
-            $this->type = 'text';
+            $this->type = 'mediumtext';
             $this->length = null;
             $this->handler = 'json';
             return;
         }
         // Array or Object
         if (preg_match("#^(array|object)\s*\((.*)\)$#i", $value, $matches) || preg_match("#^(array|object)\s*(.*)$#i", $value, $matches)) {
-            $this->type = 'text';
+            $this->type = 'mediumtext';
             $this->length = null;
             $this->handler = $matches[1];
             $this->structure = json_decode($matches[2], true);
