@@ -214,8 +214,8 @@ class InlineTableEdit {
                                             } else {
                                                 $error = "Error saving data. $error";
                                             }
-                                        } catch(Exception $e) {
-                                            $error = "Error while saving new entry: ".$e->getMessage();
+                                        } catch(\Exception $e) {
+                                            $error = $e->getMessage();
                                         }
                                     }
                                 } else {
@@ -228,8 +228,8 @@ class InlineTableEdit {
                                                     if ($this->canDelete) {
                                                         try {
                                                             $row->delete();
-                                                        } catch (Exception $e) {
-                                                            $error = "Error while trying to delete entry: ".$e->getMessage();
+                                                        } catch (\Exception $e) {
+                                                            $error = $e->getMessage();
                                                         }
                                                     } else {
                                                         $error = "Permission denied to delete items";

@@ -88,7 +88,11 @@ $(document).on('click', '.inlineTableEdit [data-delete-id]', function(){
                 '_ACTION_': 'DELETE',
             },
             success: function(response) {
-                location.reload(true);
+                if (response === "OK") {
+                    location.reload(true);
+                } else {
+                    alert(response);
+                }
             },
             error: function(response) {
                 alert(response);
