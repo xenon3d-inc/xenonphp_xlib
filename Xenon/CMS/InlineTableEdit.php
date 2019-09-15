@@ -734,11 +734,10 @@ class InlineTableEdit {
                 }
                 //TODO implement translatable
                 echo '<div class="wysiwyg"
-                    name="'.$fieldName.'"
                     style="display: inline-block; outline: dotted 2px grey; min-width: 200px; min-height: 30px; margin: 2px;"
                     onclick="wysiwyg_CKEditor_inline_edit(this, event);"
-                    onblur="$(this).trigger(\'change\');"
-                    >'.$value.'</tr>';
+                    onblur="$(this).next().val($(this).html());$(this).trigger(\'change\');"
+                    >'.$value.'</div><input type="hidden" name="'.$fieldName.'" value="" />';
             break;
             default:
                 if (!empty($prop['attributes']['readonly'])) echo $value;
