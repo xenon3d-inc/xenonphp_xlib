@@ -12,6 +12,8 @@ class InlineTableEdit {
 
     protected static $uniqueDomIDs = [];
 
+    public $dbModelQuery = null;
+
     public function __construct($source = null) {
         $this->source = $source;
         return $this;
@@ -106,21 +108,23 @@ class InlineTableEdit {
                     switch ($source) {
                         case 'Xenon\Db\Model':
                             $source = $this->source;
-                            $query = $source::select();
-                            if ($filters) {
-                                if (!($filters instanceof \Xenon\Db\Query\Helper\Where)) {
-                                    $filters = \Xenon\Db\Query\Helper\Where::fromArray($source, $filters);
+                            if (!($this->dbModelQuery instanceof \Xenon\Db\Query)) {
+                                $this->dbModelQuery = $source::select();
+                                if ($filters) {
+                                    if (!($filters instanceof \Xenon\Db\Query\Helper\Where)) {
+                                        $filters = \Xenon\Db\Query\Helper\Where::fromArray($source, $filters);
+                                    }
+                                    $this->dbModelQuery->where($filters);
                                 }
-                                $query->where($filters);
+                                $this->dbModelQuery->orderBy($orderBy);
                             }
-                            $query->orderBy($orderBy);
                             $this->data = [
-                                'query' => "$query",
+                                'query' => "$this->dbModelQuery",
                                 'properties' => $source::getProperties(true),
-                                'rows' => $query->fetchAllTableArray(),
+                                'rows' => $this->dbModelQuery->fetchAllTableArray(),
                             ];
                             if ($limit || $offset) {
-                                $query->limit($limit, $offset);
+                                $this->dbModelQuery->limit($limit, $offset);
                             }
                             return $this;
                         //TODO handle more class types
@@ -862,7 +866,11 @@ class InlineTableEdit {
         // echo '<tfoot>';
         // echo '</tfoot>';
         echo '</table>';
+        echo '<p>'.count($this->data['rows']).' results</p>';
         ?>
+        <?php if (DEV) {?>
+            Query: <pre><?=$this->data['query']?></pre>
+        <?php }?>
         <?php X_css(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/table.css");?>
         <?php X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/table.js");?>
         <?php

@@ -10,8 +10,9 @@ class CSV {
         'file_not_exists' => "File '__FILEPATH__' does not exist",
         'invalid_file' => "File must be a valid CSV with the correct structure",
         'error_on_line' => "Error on line __LINE_NUMBER__",
-        'obj_updated' => "Row with ID __ID__ has been updated",
-        'successfully_saved_n_rows' => "__N_ROWS__ rows were saved successfully",
+        // 'warn_obj_added' => "Row with ID __ID__ has been added",
+        // 'warn_obj_updated' => "Row with ID __ID__ has been updated",
+        'successfully_saved_n_rows' => "__TOTAL_ROWS__ rows were saved successfully (__ADDED_ROWS__ added, __UPDATED_ROWS__ updated)",
         'no_rows_saved_error' => "Nothing has been imported",
     ];
 
@@ -144,6 +145,8 @@ class CSV {
             if (empty($errorMessages) && count($rows)) {
                 // Insert all
                 $savedRows = 0;
+                $updatedRows = 0;
+                $addedRows = 0;
                 foreach ($rows as $row) {
                     $primaryKeys = [];
                     foreach ($this->config['primary'] as $key) {
@@ -154,15 +157,18 @@ class CSV {
                             $obj->$key = $value;
                         }
                         $obj->save();
-                        $warningMessages[] = str_replace('__ID__', $obj->id, self::$TEXTS['obj_updated']);
+                        if (!empty(self::$TEXTS['warn_obj_updated'])) $warningMessages[] = str_replace('__ID__', $obj->id, self::$TEXTS['warn_obj_updated']);
+                        $updatedRows++;
                     } else {
                         $obj = (new $MODEL($row))->save();
+                        if (!empty(self::$TEXTS['warn_obj_added'])) $warningMessages[] = str_replace('__ID__', $obj->id, self::$TEXTS['warn_obj_added']);
+                        $addedRows++;
                     }
                     if ($obj->id) {
                         $savedRows++;
                     }
                 }
-                $successMessages[] = str_replace('__N_ROWS__', $obj->id, self::$TEXTS['successfully_saved_n_rows']);
+                $successMessages[] = str_replace(['__ADDED_ROWS__', '__UPDATED_ROWS__', '__TOTAL_ROWS__'], [$addedRows, $updatedRows, $savedRows], self::$TEXTS['successfully_saved_n_rows']);
             } else {
                 $errorMessages[] = self::$TEXTS['no_rows_saved_error'];
             }
