@@ -315,7 +315,7 @@ class InlineTableEdit {
         X_js(XLIB_PATH."Xenon/CMS/inlineTableEdit_assets/arrayElements.js");
         switch (gettype($structure)) {
             case 'string':
-                $fieldName = preg_replace("/^(.*\[)?(\w+)\]?$/", '$2', $inputName);
+                $fieldName = preg_replace("/^(.*\[)?([\w#\$-]+)\]?$/", '$2', $inputName);
                 $attributes = [
                     'label' => ucfirst(trim(str_replace('_', ' ', $fieldName))),
                 ];
@@ -327,8 +327,7 @@ class InlineTableEdit {
                 if (!isset($attributes['placeholder']) && $structure === 'timer') $attributes['placeholder'] = '00:00';
                 if (!isset($attributes['placeholder'])) $attributes['placeholder'] = $attributes['label'];
                 $autocompleteValue = "false_".preg_replace("/[\]\[]+/", '_', $inputName);
-                if ($structure == 'checkbox') {?><input type="hidden" name="<?=$inputName?>" value="0"><?php }
-                if ($readonly) $readonly = " readonly disabled ";
+                if ($readonly || isset($attributes['readonly'])) $readonly = " readonly disabled ";
                 if ($readonly && $structure != 'select' && $structure != 'link') {
                     ?>
                     <span 
@@ -338,6 +337,9 @@ class InlineTableEdit {
                     <?php
                 } else {
                     switch ($structure) {
+                        case 'checkbox':
+                            ?><input type="hidden" name="<?=$inputName?>" value="0"><?php
+                            // no break
                         default:
                             ?><input 
                                 type="<?=$structure!==''?$structure:'text'?>" 
@@ -537,7 +539,11 @@ class InlineTableEdit {
             }
         }
         if (!empty($prop['attributes']['autocomplete_ajax']) && $type == "select") {
-            $autocomplete_list=' autocomplete_ajax="?X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD='.$fieldName.'" ';
+            if ($prop['attributes']['autocomplete_ajax'] === true) {
+                $autocomplete_list=' autocomplete_ajax="?X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD='.$fieldName.'" ';
+            } else {
+                $autocomplete_list=' autocomplete_ajax="'.$prop['attributes']['autocomplete_ajax'].'" ';
+            }
             include_once(XLIB_PATH.'helpers/select_autocomplete.phtml');
         }
 
@@ -581,7 +587,7 @@ class InlineTableEdit {
                 echo '<input type="password" name="'.$fieldName.'" value="" autocomplete="new-password" '.$placeholder.$readonly.$required.' />';
             break;
             case 'date':
-                echo '<input type="date" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d'):'').'" '.$readonly.$required.$autocomplete_list.' />';
+                echo '<input type="date" name="'.$fieldName.'" value="'.htmlspecialchars(($value instanceof \Xenon\Db\Query\Helper\DateTime)?$value->format('Y-m-d'):$value).'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             // case 'create_timestamp':
             // case 'current_timestamp':

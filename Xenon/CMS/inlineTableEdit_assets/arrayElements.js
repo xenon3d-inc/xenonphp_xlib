@@ -35,7 +35,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
         options = options || {};
         switch (typeof structure) {
             case 'string':
-                var fieldName = inputName.replace(/^(.*\[)?(\w+)\]?$/, '$2');
+                var fieldName = inputName.replace(/^(.*\[)?([\w#\$-]+)\]?$/, '$2');
                 var attributes = {
                     label: fieldName.replace('_', ' ').trim(),
                 };
@@ -43,18 +43,18 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                     $.extend(attributes, decodeQueryString(structure.replace(/^(\w+)\?(.*)$/, '$2')));
                     structure = structure.replace(/^(\w+)\?(.*)$/, '$1');
                 }
-
                 if (!attributes['placeholder'] && structure === 'timer') attributes['placeholder'] = '00:00';
                 if (!attributes['placeholder']) attributes['placeholder'] = attributes['label'];
                 var autocompleteValue = 'false_'+inputName.replace(/[\]\[]+/g, '_');
-                if (structure == 'checkbox') {
-                    $('<input>').appendTo($parent)
-                        .attr('type', 'hidden')
-                        .attr('name', inputName)
-                        .attr('value', '0')
-                    ;
-                }
-                switch (structure) {
+                if (attributes['readonly'] && structure == 'info') {
+                    $('<span>').appendTo($parent).text(attributes.placeholder).attr('title', attributes.label);
+                } else switch (structure) {
+                    case 'checkbox':
+                        $('<input>').appendTo($parent)
+                            .attr('type', 'hidden')
+                            .attr('name', inputName)
+                            .attr('value', '0')
+                        ; // no break
                     default:
                         $('<input>').appendTo($parent)
                             .attr('type', structure || 'text')
@@ -63,6 +63,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                             .attr('placeholder', attributes.placeholder)
                             .attr('title', attributes.label)
                             .attr('autocomplete', autocompleteValue)
+                            .attr('readonly', !!attributes['readonly'])
                             .attr('data-nbfields', nbfields)
                             .attr('value', structure=='checkbox'?'1':'')
                         ;
@@ -77,6 +78,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                             .attr('placeholder', attributes.placeholder)
                             .attr('title', attributes.label)
                             .attr('autocomplete', autocompleteValue)
+                            .attr('readonly', !!attributes['readonly'])
                             .attr('data-nbfields', nbfields)
                             .attr('value', '')
                         ;
@@ -89,6 +91,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                             .attr('placeholder', '00:00')
                             .attr('title', attributes.label)
                             .attr('autocomplete', autocompleteValue)
+                            .attr('readonly', !!attributes['readonly'])
                             .attr('data-nbfields', nbfields)
                             .attr('value', '')
                         ;
@@ -100,6 +103,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                             .attr('placeholder', attributes.placeholder)
                             .attr('title', attributes.label)
                             .attr('autocomplete', autocompleteValue)
+                            .attr('readonly', !!attributes['readonly'])
                             .attr('data-nbfields', nbfields)
                         ;
                     break;
@@ -109,6 +113,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                         .attr('data-field', fieldName)
                         .attr('title', attributes.label)
                         .attr('autocomplete', autocompleteValue)
+                        .attr('readonly', !!attributes['readonly'])
                         .attr('data-nbfields', nbfields)
                         ;
                         if (attributes.autocomplete_ajax) {

@@ -28,7 +28,7 @@ $(document).on('change.autosave', '.inlineTableEdit input[name], .inlineTableEdi
                 }
             } else {
                 if (this.tagName == "INPUT" && this.type == "checkbox") {
-                    value = $(this).prop('checked')? 1:0;
+                    value = $(this).prop('checked')? $(this).val() : (data[$(this).attr('name')] || 0);
                 }
                 if (typeof value === 'object' && value !== null && Object.keys(value).length == 0) value = "";
                 if (typeof value === 'undefined') value = "";
