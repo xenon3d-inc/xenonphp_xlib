@@ -13,6 +13,7 @@ function X_simpleImageUpload($name, $src, $defaultValue, $imageprocessor, $autoS
             top: 0;
             right: 0;
             bottom: 0;
+            width: 100%;
             opacity: 0;
         "
         onchange="
