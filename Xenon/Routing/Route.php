@@ -268,6 +268,8 @@ class Route {
             foreach ($getparams as $key => $val) {
                 $queryString .= ($queryString? '&':'?') . urlencode($key) . '=' . urlencode($val);
             }
+        } else if (is_string($getparams)) {
+            $queryString = $getparams;
         }
 
         // Base UrL
