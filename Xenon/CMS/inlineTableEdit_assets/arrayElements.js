@@ -11,7 +11,7 @@ function decodeQueryString(queryString) {
 function X_inlineTableEdit_removeArrayElement(fieldName, $elem) {
     var $arrayfield = $elem.closest('[data-i]').closest('.arrayfield');
     $elem.closest('[data-i]').remove();
-    $arrayfield.parent().find('input[name="'+fieldName+'"]').trigger('change');
+    $arrayfield.parent().find('input[name="'+fieldName+'"],textarea[name="'+fieldName+'"],select[name="'+fieldName+'"]').trigger('change');
 }
 
 function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options) {
@@ -107,6 +107,23 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                             .attr('data-nbfields', nbfields)
                         ;
                     break;
+                    case 'wysiwyg':
+                        $('<div>').appendTo($parent)
+                            .addClass('wysiwyg')
+                            .attr('data-field', fieldName)
+                            .on('click', function(){
+                                wysiwyg_CKEditor_inline_edit(this, event);
+                            })
+                            .on('blur', function(){
+                                $(this).next().val($(this).html()).trigger('change');
+                            })
+                            .after(
+                                $('<textarea style="display:none;">')
+                                    .attr('data-field', fieldName)
+                                    .attr('name', inputName)
+                            )
+                        ;
+                    break;
                     case 'select':
                         var $select = $('<select>').appendTo($parent)
                         .attr('name', inputName)
@@ -157,7 +174,7 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
     };
     appendField(fieldName+'['+nextIndex+']', structure, 1, $parent, options);
     
-    $parent.find('input,select').get(0).focus();
+    $parent.find('input,select,textarea').get(0).focus();
 
     if ($parent[0].tagName == 'TR') {
         $parent = $('<td>').appendTo($parent);

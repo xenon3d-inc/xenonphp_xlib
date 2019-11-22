@@ -41,3 +41,34 @@ function X_upload($name = null, $filePrefix = null, $acceptFilenameRegex = "#\w+
     
     return false;
 }
+
+function X_simpleFileUpload($name, $src, $defaultValue = null, $autoSubmit = false) {?>
+<div class="X_simpleFileUpload" ondrop="dropUploadFile(event, this.querySelector('input[type=file]'));" style="position:relative;">
+    <a class="src" href="<?=$src? $src : $defaultValue?>" target="_blank"><?=$src?$src:'<i class="fas fa-file-upload"></i> ...'?></a><br>
+    <input type="hidden" name="<?=$name?>" value="<?=$src?>">
+    <input type="file"
+        style="
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            opacity: 0;
+        "
+        onchange="
+            var elem = this;
+            dropUploadFile(event, '', {
+                singleCompleteCallback: function(index, filepath){
+                    $(elem).parent().find('a.src').attr('href', filepath).text(filepath);
+                    $(elem).parent().find('input[name=<?=$name?>]').val(filepath).trigger('change');
+                    <?php if ($autoSubmit) {?>
+                        $(elem.form).submit();
+                    <?php }?>
+                }
+            });
+        "
+    >
+</div>
+<?php
+}

@@ -27,3 +27,11 @@ form.inlineEditTable_add div.arrayfield [data-i] {
 table.arrayfield input[type="number"] {
     min-width: 60px;
 }
+
+div.arrayfield div.wysiwyg {
+    display: inline-block;
+    outline: dotted 2px grey;
+    min-width: 200px;
+    min-height: 30px;
+    margin: 2px;
+}

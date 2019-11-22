@@ -431,6 +431,13 @@ class InlineTableEdit {
                                 <?=$readonly?>
                                 ><?=htmlspecialchars($val)?></textarea><?php
                         break;
+                        case 'wysiwyg':
+                            self::preloadCKEditor();
+                            echo '<div class="wysiwyg" data-field="'.$fieldName.'"
+                                onclick="wysiwyg_CKEditor_inline_edit(this, event);"
+                                onblur="$(this).next().val($(this).html()).trigger(\'change\');"
+                                >'.$val.'</div><textarea style="display:none;" data-field="'.$fieldName.'" name="'.$inputName.'">'.htmlspecialchars($val).'</textarea>';
+                        break;
                         case 'select':
                             $attributes['options'] = isset($attributes['options'])? explode(',', $attributes['options']) : [];
                             if (!empty($attributes['autocomplete_ajax'])) {
@@ -610,6 +617,13 @@ class InlineTableEdit {
                     X_simpleImageUpload($fieldName, $value, "//placehold.it/50x50&text=$fieldName", "?size=50x50&margins");
                 }
             break;
+            case 'file_upload':
+                if ($readonly) {
+                    if ($value) echo '<a href="'.$value.'" target="_blank">'.$value.'</a>';
+                } else {
+                    X_simpleFileUpload($fieldName, $value);
+                }
+            break;
             case 'select':
                 if ($readonly) {
                     $readonly = "$readonly disabled ";
@@ -710,38 +724,7 @@ class InlineTableEdit {
                 self::outputObjectArrayField($fieldName, @$prop['structure'], $value, 1, @$prop['options'], @$prop['attributes']['options_label'], !empty($prop['attributes']['readonly']));
             break;
             case 'wysiwyg':
-                static $ckeditor_preloaded = false;
-                if (!$ckeditor_preloaded) {
-                    ?>
-                    <script src="//cdn.ckeditor.com/4.5.7/full/ckeditor.js"></script>
-                    <script>
-                        function wysiwyg_CKEditor_inline_edit(elem, event) {
-                            if (event !== undefined) {
-                                event.stopPropagation();
-                                event.preventDefault();
-                            }
-                            if (!$(elem).hasClass('editing')) {
-                                $(elem).addClass('editing');
-                                CKEDITOR.inline(elem, {
-                                    customConfig: false,
-                                    width: 'auto',
-                                    height: 'auto',
-                                    language: '<?=(LANG=='fr'?'fr-ca':LANG)?>',
-                                    toolbarGroups: [
-                                        { name: 'basicstyles', groups: [ 'basicstyles', 'cleanup' ] },
-                                        { name: 'links' },
-                                        { name: 'styles' },
-                                        { name: 'colors' },
-                                    ]
-                                });
-                                elem.setAttribute('contenteditable', true);
-                                elem.focus();
-                            }
-                        }
-                    </script>
-                    <?php
-                    $ckeditor_preloaded = true;
-                }
+                self::preloadCKEditor();
                 //TODO implement translatable
                 echo '<div class="wysiwyg"
                     style="display: inline-block; outline: dotted 2px grey; min-width: 200px; min-height: 30px; margin: 2px;"
@@ -755,6 +738,41 @@ class InlineTableEdit {
         }
         if (!empty($prop['attributes']['checkbox'])) {
             echo "</div>";
+        }
+    }
+
+    public static function preloadCKEditor() {
+        static $ckeditor_preloaded = false;
+        if (!$ckeditor_preloaded) {
+            ?>
+            <script src="//cdn.ckeditor.com/4.5.7/full/ckeditor.js"></script>
+            <script>
+                function wysiwyg_CKEditor_inline_edit(elem, event) {
+                    if (event !== undefined) {
+                        event.stopPropagation();
+                        event.preventDefault();
+                    }
+                    if (!$(elem).hasClass('editing')) {
+                        $(elem).addClass('editing');
+                        CKEDITOR.inline(elem, {
+                            customConfig: false,
+                            width: 'auto',
+                            height: 'auto',
+                            language: '<?=(LANG=='fr'?'fr-ca':LANG)?>',
+                            toolbarGroups: [
+                                { name: 'basicstyles', groups: [ 'basicstyles', 'cleanup' ] },
+                                { name: 'links' },
+                                { name: 'styles' },
+                                { name: 'colors' },
+                            ]
+                        });
+                        elem.setAttribute('contenteditable', true);
+                        elem.focus();
+                    }
+                }
+            </script>
+            <?php
+            $ckeditor_preloaded = true;
         }
     }
 
