@@ -45,7 +45,7 @@ function X_upload($name = null, $filePrefix = null, $acceptFilenameRegex = "#\w+
 function X_simpleFileUpload($name, $src, $defaultValue = null, $autoSubmit = false) {?>
 <div class="X_simpleFileUpload" ondrop="dropUploadFile(event, this.querySelector('input[type=file]'));" style="position:relative;">
     <a class="src" href="<?=$src? $src : $defaultValue?>" target="_blank"><?=$src?$src:'<i class="fas fa-file-upload"></i> ...'?></a><br>
-    <input type="hidden" name="<?=$name?>" value="<?=$src?>">
+    <input type="hidden" name="<?=$name?>" value="<?=$src?>" <?php if ($src === null) echo 'disabled'; ?>>
     <input type="file"
         style="
             position: absolute;
@@ -54,6 +54,7 @@ function X_simpleFileUpload($name, $src, $defaultValue = null, $autoSubmit = fal
             right: 0;
             bottom: 0;
             width: 100%;
+            height: 100%;
             opacity: 0;
         "
         onchange="
@@ -61,7 +62,7 @@ function X_simpleFileUpload($name, $src, $defaultValue = null, $autoSubmit = fal
             dropUploadFile(event, '', {
                 singleCompleteCallback: function(index, filepath){
                     $(elem).parent().find('a.src').attr('href', filepath).text(filepath);
-                    $(elem).parent().find('input[name=<?=$name?>]').val(filepath).trigger('change');
+                    $(elem).parent().find('input[name=<?=$name?>]').val(filepath).prop('disabled', false).trigger('change');
                     <?php if ($autoSubmit) {?>
                         $(elem.form).submit();
                     <?php }?>

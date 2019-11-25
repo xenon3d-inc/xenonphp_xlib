@@ -600,7 +600,7 @@ class InlineTableEdit {
             // case 'current_timestamp':
             case 'timestamp':
             case 'datetime':
-                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?$value->format('Y-m-d\TH:i:s'):'').'" '.$readonly.$required.$autocomplete_list.' />';
+                echo '<input type="datetime-local" name="'.$fieldName.'" value="'.htmlspecialchars($value?(is_string($value)? (date("Y-m-d\TH:i:s", strtotime($value))) : $value->format('Y-m-d\TH:i:s')):'').'" '.$readonly.$required.$autocomplete_list.' />';
             break;
             case 'bool':
             case 'checkbox':
@@ -611,10 +611,16 @@ class InlineTableEdit {
                 echo '<input type="checkbox" name="'.$fieldName.'" value="1" '.($value && $value !== '0' ? 'checked':'').' '.$readonly.$required.' />';
             break;
             case 'image_upload':
+                $size = !empty($prop['attributes']['size'])? $prop['attributes']['size'] : "50x50";
                 if ($readonly) {
-                    echo '<img src="'.($value?($value.'?size=50x50&margins'):'//placehold.it/50x50&text='.$fieldName).'" alt="'.$fieldName.'" />';
+                    echo '<img src="'.($value?("$value?size=$size&margins"):"//placehold.it/$size&text=$fieldName").'" alt="'.$fieldName.'" />';
                 } else {
-                    X_simpleImageUpload($fieldName, $value, "//placehold.it/50x50&text=$fieldName", "?size=50x50&margins");
+                    if (strpos($value, '%') === 0) {
+                        ?><input type="hidden" name="<?=$fieldName?>" value="<?=$value?>"><?php
+                        X_simpleImageUpload($fieldName, null, "//placehold.it/$size&text=".urlencode($value), "?size=$size&crop");
+                    } else {
+                        X_simpleImageUpload($fieldName, $value, "//placehold.it/$size&text=$fieldName", "?size=$size&crop");
+                    }
                 }
             break;
             case 'file_upload':
@@ -729,8 +735,8 @@ class InlineTableEdit {
                 echo '<div class="wysiwyg"
                     style="display: inline-block; outline: dotted 2px grey; min-width: 200px; min-height: 30px; margin: 2px;"
                     onclick="wysiwyg_CKEditor_inline_edit(this, event);"
-                    onblur="$(this).next().val($(this).html());$(this).trigger(\'change\');"
-                    >'.$value.'</div><input type="hidden" name="'.$fieldName.'" value="" />';
+                    onblur="$(this).next().val($(this).html()).trigger(\'change\');"
+                    >'.$value.'</div><textarea style="display:none;" name="'.$fieldName.'">'.htmlspecialchars($value).'</textarea>';
             break;
             default:
                 if (!empty($prop['attributes']['readonly'])) echo $value;
