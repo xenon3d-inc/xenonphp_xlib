@@ -19,7 +19,12 @@ $(document).on('change.autosave', '.inlineTableEdit input[name], .inlineTableEdi
             if ($(this).attr('name').match(/\[\]$/)) {
                 var name = $(this).attr('name').replace(/\[\]$/, '');
                 if (!$(this).prop('disabled')) {
-                    if (this.tagName != "INPUT" || this.type != "checkbox" || $(this).prop('checked')) {
+                    if (this.tagName == "SELECT") {
+                        // Most likely a multiple-selection dropdown
+                        if (typeof value == 'object' && !value.length) value = ''; // when deselecting all
+                        data[name] = value;
+                    } else if (this.tagName != "INPUT" || this.type != "checkbox" || $(this).prop('checked')) {
+                        // Checked Checkbox, but not other inputs
                         if (typeof data[name] != 'object') {
                             data[name] = [];
                         }
