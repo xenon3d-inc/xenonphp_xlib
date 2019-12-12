@@ -11,6 +11,7 @@ class Select extends \Xenon\Db\Query
     protected $fields = [];
 
     protected $where = null;
+    protected $having = "";
     protected $groupby = "";
     protected $orderby = "";
     protected $limit = "";
@@ -29,6 +30,7 @@ class Select extends \Xenon\Db\Query
         return $this->query." ".implode(', ', $this->fields)
                 ." FROM `".$this->table."`"
                 .($this->where ? " WHERE ".$this->where : '')
+                .($this->having ? " HAVING ".$this->having : '')
                 .($this->groupby ? " GROUP BY ".$this->groupby : '')
                 .($this->orderby ? " ORDER BY ".$this->orderby : '')
                 .($this->limit || $this->offset ? " LIMIT ".((int)$this->limit).($this->offset? " OFFSET ".$this->offset:'') : '')
@@ -58,6 +60,11 @@ class Select extends \Xenon\Db\Query
         return $this->addFields($fields);
     }
     
+    public function having($expr, ...$args) {
+        $this->having .= (($this->having? " AND " : "").(new Helper\Expr($expr, $this->model, $args)));
+        return $this;
+    }
+
     public function groupBy($expr) {
         $this->groupby = "".$expr;
         return $this;

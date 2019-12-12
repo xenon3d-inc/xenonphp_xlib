@@ -16,6 +16,8 @@ class CSV {
         'no_rows_saved_error' => "Nothing has been imported",
     ];
 
+    public static $DELIMITER = ",";
+
     public $config = [
         'fields' => [
             'id' => [
@@ -191,12 +193,20 @@ class CSV {
         $MODEL = $this->model;
         if ($rows === null) $rows = $MODEL::select()->fetchAll();
         $fields = $this->config['fields'];
-        $output = implode(",", array_keys($fields))."\r\n";
+        $output = "";
+        foreach ($fields as $field => $options) {
+            $output .= ($output? self::$DELIMITER : '').(is_int($field)?$options:$field);
+        }
+        $output .= "\r\n";
         foreach ($rows as $row) {
             $line = [];
             foreach ($fields as $field => $options) {
+                if (is_int($field)) {
+                    $field = $options;
+                    $options = [];
+                }
                 $val = @$row[$field];
-                if (isset($options['export'])) {
+                if (is_array($options) && isset($options['export'])) {
                     if (is_callable($options['export'])) {
                         $val = $options['export']($val, $row);
                     } else {
@@ -205,7 +215,7 @@ class CSV {
                 }
                 $line[] = $val;
             }
-            $output .= implode(",", $line)."\r\n";
+            $output .= implode(self::$DELIMITER, $line)."\r\n";
         }
         return $output;
     }
