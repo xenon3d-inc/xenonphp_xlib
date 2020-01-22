@@ -126,12 +126,12 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                     break;
                     case 'select':
                         var $select = $('<select>').appendTo($parent)
-                        .attr('name', inputName)
-                        .attr('data-field', fieldName)
-                        .attr('title', attributes.label)
-                        .attr('autocomplete', autocompleteValue)
-                        .attr('readonly', !!attributes['readonly'])
-                        .attr('data-nbfields', nbfields)
+                            .attr('name', inputName)
+                            .attr('data-field', fieldName)
+                            .attr('title', attributes.label)
+                            .attr('autocomplete', autocompleteValue)
+                            .attr('readonly', !!attributes['readonly'])
+                            .attr('data-nbfields', nbfields)
                         ;
                         if (attributes.autocomplete_ajax) {
                             $select.attr('autocomplete_ajax', attributes.autocomplete_ajax);
@@ -150,6 +150,25 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
                                 .attr('value', i)
                                 .text(options[i])
                             ;
+                        }
+                    break;
+                    case 'radio':
+                        attributes.options = attributes.options? attributes.options.split(',') : [];
+                        if (typeof options !== 'object') options = [];
+                        for (var i in attributes.options) {
+                            options[attributes.options[i]] = attributes.options[i];
+                        }
+                        for (var i in options) {
+                            var $label = $('<label>').appendTo($parent);
+                            $('<input>').appendTo($label)
+                                .attr('type', 'radio')
+                                .attr('name', inputName)
+                                .attr('data-field', fieldName)
+                                .attr('title', options[i])
+                                .attr('readonly', !!attributes['readonly'])
+                                .attr('value', i)
+                            ;
+                            $label.append(options[i]);
                         }
                     break;
                 }

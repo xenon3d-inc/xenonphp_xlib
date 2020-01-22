@@ -472,6 +472,26 @@ class InlineTableEdit {
                                 <?php }?>
                             </select><?php
                         break;
+                        case 'radio':
+                            $attributes['options'] = isset($attributes['options'])? explode(',', $attributes['options']) : [];
+                            foreach ($attributes['options'] as $option) {
+                                $options[$option] = $option;
+                            }
+                            foreach ($options as $optionValue => $optionLabel) {
+                                ?>
+                                <label class="radio">
+                                    <input 
+                                        type="radio"
+                                        name="<?=$inputName?>"
+                                        data-field="<?=$fieldName?>"
+                                        title="<?=$optionLabel?>" 
+                                        <?=$readonly?>
+                                        <?php if ($val == $optionValue) echo 'checked'; ?> value="<?=$optionValue?>"
+                                    /><?=$optionLabel?>
+                                </label>
+                                <?php
+                            }
+                        break;
                     }
                 }
             break;
