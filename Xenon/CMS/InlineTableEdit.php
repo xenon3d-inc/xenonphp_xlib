@@ -487,7 +487,7 @@ class InlineTableEdit {
                                         title="<?=$optionLabel?>" 
                                         <?=$readonly?>
                                         <?php if ($val == $optionValue) echo 'checked'; ?> value="<?=$optionValue?>"
-                                    /><?=$optionLabel?>
+                                    /><span><?=$optionLabel?></span>
                                 </label>
                                 <?php
                             }
@@ -906,7 +906,18 @@ class InlineTableEdit {
                 if (isset($customFunctions[$fieldName]) && is_callable($customFunctions[$fieldName])) {
                     $customFunctions[$fieldName](@$row[$fieldName], $row, $prop, false);
                 } else {
+                    $surroundWithFakeForm = $prop === 'radio' || @$prop['dataType'] === 'radio' || @$prop['type'] === 'radio';
+                    if (!$surroundWithFakeForm && (@$prop['dataType'] === 'object' || @$prop['dataType'] === 'array')) {
+                        foreach ((array)@$prop['structure'] as $t) {
+                            if (strpos($t, 'radio') !== false) {
+                                $surroundWithFakeForm = true;
+                                break;
+                            }
+                        }
+                    }
+                    if ($surroundWithFakeForm){?><form class="fakeForm" onsubmit="event.preventDefault();return false;"><?php }
                     $this->generateField($row, $fieldName, $prop, false);
+                    if ($surroundWithFakeForm){?></form><?php }
                 }
                 echo '</td>';
             }

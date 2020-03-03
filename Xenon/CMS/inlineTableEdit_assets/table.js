@@ -32,7 +32,7 @@ $(document).on('change.autosave', '.inlineTableEdit input[name], .inlineTableEdi
                     }
                 }
             } else {
-                if (this.tagName == "INPUT" && this.type == "checkbox") {
+                if (this.tagName == "INPUT" && (this.type == "checkbox" || this.type == "radio")) {
                     value = $(this).prop('checked')? $(this).val() : (data[$(this).attr('name')] || 0);
                 }
                 if (typeof value === 'object' && value !== null && Object.keys(value).length == 0) value = "";

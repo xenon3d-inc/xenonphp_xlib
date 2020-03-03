@@ -72,20 +72,20 @@ class CSV {
         <?php
     }
 
-    public function upload($inputFileName, &$successMessages, &$warningMessages, &$errorMessages) {
+    public function upload($inputFileName, &$successMessages, &$warningMessages, &$errorMessages, &$importedData) {
         $file = X_upload($inputFileName, null, "#\.csv$#i");
         if ($file) {
-            $this->importFile(DOCUMENT_ROOT.$file, $successMessages, $warningMessages, $errorMessages);
+            $this->importFile(DOCUMENT_ROOT.$file, $successMessages, $warningMessages, $errorMessages, $importedData);
         } else {
             $errorMessages[] = self::$TEXTS['upload_error'];
         }
         return !(!empty($errorMessages) && count($errorMessages));
     }
 
-    public function importFile($filePath, &$successMessages, &$warningMessages, &$errorMessages) {
+    public function importFile($filePath, &$successMessages, &$warningMessages, &$errorMessages, &$importedData) {
         if (is_file($filePath)) {
             if (trim($fileContent = file_get_contents($filePath))) {
-                $this->importCSVContent($fileContent, $successMessages, $warningMessages, $errorMessages);
+                $this->importCSVContent($fileContent, $successMessages, $warningMessages, $errorMessages, $importedData);
             } else {
                 $errorMessages[] = self::$TEXTS['file_is_empty'];
             }
@@ -94,7 +94,7 @@ class CSV {
         }
     }
 
-    public function importCSVContent($fileContent, &$successMessages, &$warningMessages, &$errorMessages) {
+    public function importCSVContent($fileContent, &$successMessages, &$warningMessages, &$errorMessages, &$importedData) {
         $MODEL = $this->model;
         $lines = preg_split("#[\n\r]+#m", $fileContent);
         $header = array_shift($lines);
@@ -168,6 +168,7 @@ class CSV {
                     }
                     if ($obj->id) {
                         $savedRows++;
+                        $importedData[$obj->id] = $obj;
                     }
                 }
                 $successMessages[] = str_replace(['__ADDED_ROWS__', '__UPDATED_ROWS__', '__TOTAL_ROWS__'], [$addedRows, $updatedRows, $savedRows], self::$TEXTS['successfully_saved_n_rows']);
