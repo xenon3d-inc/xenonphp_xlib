@@ -61,9 +61,18 @@
         .on('focus.autocompletion_activation', 'select[autocomplete_list]:not(.autocompletion_activated), select[autocomplete_ajax]:not(.autocompletion_activated)', function(event){
             var $select = $(this);
             var options = {};
-            $select.find('option').each(function(){
-                options[$(this).attr('value')] = $(this).text();
-            });
+            var optionsSorted = [];
+            if ($select.attr('list')) {
+                $('#'+$select.attr('list')+' option').each(function(){
+                    options[''+$(this).attr('value')] = $(this).text();
+                    optionsSorted.push($(this).attr('value'));
+                });
+            } else {
+                $select.find('option').each(function(){
+                    options[''+$(this).attr('value')] = $(this).text();
+                    optionsSorted.push($(this).attr('value'));
+                });
+            }
             var selectedOptionValue = $select.val() || '';
             var selectionOptionLabel = options[selectedOptionValue] || selectedOptionValue;
             var $div = $('<div class="autocomplete_list">').insertAfter($select);
@@ -105,7 +114,7 @@
             }
             var selectOption = function(){
                 if ($currentAutocompleteOption) {
-                    if ($select.is('[autocomplete_ajax]')) {
+                    if ($select.is('[autocomplete_ajax]') || $select.attr('list')) {
                         $select.empty().append($('<option>').attr('value', $currentAutocompleteOption.attr('value')).text($currentAutocompleteOption.text()));
                     }
                     $select.val($currentAutocompleteOption.attr('value'));
@@ -153,7 +162,8 @@
                     }, $select.attr('autocomplete_ajax_delay') || 300);
                 } else {
                     var search = $input.val().trim().toLowerCase().replace(/\W+/g, ' ');
-                    for (var val in options) {
+                    for (var i in optionsSorted) {
+                        var val = optionsSorted[i];
                         var text = options[val];
                         if (text.trim().toLowerCase().replace(/\W+/g, ' ').indexOf(search) >= 0) {
                             appendOption(val, text);
