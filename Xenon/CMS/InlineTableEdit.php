@@ -57,38 +57,45 @@ class InlineTableEdit {
         return !empty($this->data['rows']);
     }
 
-    public function ajaxAutoCompleteSearch($searchFunction = null/* function($fieldName, $search) */) {
+    public function ajaxAutoCompleteSearch($optionsFiltersOverrideFunc = null) {
         if (!empty($_GET['X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD'])) {
             $field = $_GET['X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD'];
+            $rowID = $_GET['X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_ROW_ID'];
             $search = trim(@$_GET['search']);
 
-            if (is_callable($searchFunction)) {
-                $results = $searchFunction($field, $search);
-            } else {
-                $this->loadProperties(false, function($fieldName, $columnData, &$query) use($field) {
-                    return $field == $fieldName;
-                });
-                $results = !empty($this->data['properties']['fields'][$field]['null'])? ['' => ''] : [];
-                $options = $this->data['properties']['fields'][$field]['options'];
-                foreach ($options as $option_value => $option_row) {
-                    $text = "$option_row";
-                    $haystack = explode(' ', strtolower(preg_replace("/\W+/", ' ', $text)));
-                    $needles = explode(' ', strtolower(preg_replace("/\W+/", ' ', $search)));
-                    if (!count($needles)) continue;
-                    // All needles must be present (starts with) in haystack
-                    $notFound = false;
-                    foreach ($needles as $needle) {
-                        if ($needle == "") continue;
-                        foreach ($haystack as $word) {
-                            if (strpos($word, $needle) === 0) {
-                                continue 2;
-                            }
+            $this->loadProperties(false, function($fieldName, $columnData, &$query) use($field) {
+                return $field == $fieldName;
+            });
+            $results = !empty($this->data['properties']['fields'][$field]['null'])? ['' => ''] : [];
+            $options = $this->data['properties']['fields'][$field]['options'];
+
+            if ($optionsFiltersOverrideFunc) {
+                if (is_array($optionsFiltersOverrideFunc) && isset($optionsFiltersOverrideFunc[$field]) && is_callable($optionsFiltersOverrideFunc[$field])) {
+                    $options = $optionsFiltersOverrideFunc[$field]($search, $rowID, $options);
+                } else if (is_callable($optionsFiltersOverrideFunc)) {
+                    $options = $optionsFiltersOverrideFunc($field, $search, $rowID, $options);
+                }
+            }
+
+            foreach ($options as $option_value => $option_row) {
+
+                $text = "$option_row";
+                $haystack = explode(' ', strtolower(preg_replace("/\W+/", ' ', $text)));
+                $needles = explode(' ', strtolower(preg_replace("/\W+/", ' ', $search)));
+                if (!count($needles)) continue;
+                // All needles must be present (starts with) in haystack
+                $notFound = false;
+                foreach ($needles as $needle) {
+                    if ($needle == "") continue;
+                    foreach ($haystack as $word) {
+                        if (strpos($word, $needle) === 0) {
+                            continue 2;
                         }
-                        $notFound = true;
                     }
-                    if (!$notFound) {
-                        $results[$option_value] = $text;
-                    }
+                    $notFound = true;
+                }
+                if (!$notFound) {
+                    $results[$option_value] = $text;
                 }
             }
 

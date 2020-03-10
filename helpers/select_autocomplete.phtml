@@ -105,6 +105,10 @@
                 'background-color': $select.css('background-color'),
             });
 
+            if ($select.is('[autocomplete_ajax]') && $select.attr('autocomplete_ajax').match(/\?X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD=/) && $select.closest('td[data-id]').length) {
+                $select.attr('autocomplete_ajax', $select.attr('autocomplete_ajax')+'&X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_ROW_ID='+$select.closest('td[data-id]').attr('data-id'));
+            }
+
             $select.addClass('autocompletion_activated').hide();
 
             var $currentAutocompleteOption = null;
