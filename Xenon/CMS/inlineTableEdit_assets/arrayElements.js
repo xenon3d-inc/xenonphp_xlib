@@ -14,7 +14,7 @@ function X_inlineTableEdit_removeArrayElement(fieldName, $elem) {
     $arrayfield.parent().find('input[name="'+fieldName+'"],textarea[name="'+fieldName+'"],select[name="'+fieldName+'"]').trigger('change');
 }
 
-function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options) {
+function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options, newItemValue) {
     var $arrayField = $elem.closest('.arrayfield');
     var nextIndex = 0;
     $arrayField.find('[data-i]').each(function(){
@@ -193,7 +193,33 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options)
     };
     appendField(fieldName+'['+nextIndex+']', structure, 1, $parent, options);
     
-    $parent.find('input,select,textarea').get(0).focus();
+    if (newItemValue !== undefined) {
+        if (typeof newItemValue === 'object') {
+            for (var key in newItemValue) {
+                var value = newItemValue[key];
+                var itemElement = $parent.find('[data-field="'+key+'"]').get(0);
+                if (itemElement.tagName == 'SELECT') {
+                    if (typeof value === 'object') {
+                        for (var val in value) if ($(itemElement).find('option[value="'+val+'"]').length == 0) {
+                            $(itemElement).append($('<option>').attr('value', val).text(value[val])).val(val);
+                        }
+                    } else if ($(itemElement).find('option[value="'+value+'"]').length == 0) {
+                        $(itemElement).append($('<option>').attr('value', value).text(value)).val(value);
+                    }
+                } else {
+                    $(itemElement).val(value);
+                }
+            }
+        } else {
+            var itemElement = $parent.find('input,select,textarea').get(0);
+            if (itemElement.tagName == 'SELECT' && $(itemElement).find('option[value="'+newItemValue+'"]').length == 0) {
+                $(itemElement).append($('<option>').attr('value', newItemValue).text(newItemValue));
+            }
+            $(itemElement).val(newItemValue);
+        }
+    } else {
+        $parent.find('input,select,textarea').get(0).focus();
+    }
 
     if ($parent[0].tagName == 'TR') {
         $parent = $('<td>').appendTo($parent);

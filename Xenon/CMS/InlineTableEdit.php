@@ -311,7 +311,9 @@ class InlineTableEdit {
     }
 
     public function setFieldSelectOptions($fieldName, $options = ["" => ""], $options_label = null) {
-        $this->data['properties']['fields'][$fieldName]['attributes']['type'] = is_array($options_label)? 'array':'select';
+        if ($options_label !== null) {
+            $this->data['properties']['fields'][$fieldName]['attributes']['type'] = is_array($options_label)? 'array':'select';
+        }
         $this->data['properties']['fields'][$fieldName]['attributes']['options_label'] = $options_label;
         $this->data['properties']['fields'][$fieldName]['options'] = $options;
     }
