@@ -67,7 +67,7 @@ class InlineTableEdit {
                 return $field == $fieldName;
             });
             $results = !empty($this->data['properties']['fields'][$field]['null'])? ['' => ''] : [];
-            $options = $this->data['properties']['fields'][$field]['options'];
+            $options = (array)@$this->data['properties']['fields'][$field]['options'];
 
             if ($optionsFiltersOverrideFunc) {
                 if (is_array($optionsFiltersOverrideFunc) && isset($optionsFiltersOverrideFunc[$field]) && is_callable($optionsFiltersOverrideFunc[$field])) {
@@ -750,7 +750,7 @@ class InlineTableEdit {
                             ?></div><?php
                         }
                         if (empty($prop['attributes']['readonly'])) {
-                            ?><a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=self::json_encode_escape(@$prop['structure'])?>, $(this), <?=self::json_encode_escape($options)?>)"><i class="fas fa-plus"></i></a><?php
+                            ?><a class="add" onclick="X_inlineTableEdit_addArrayElement('<?=$fieldName?>', <?=self::json_encode_escape(@$prop['structure'])?>, $(this), <?=self::json_encode_escape($options)?>, '')"><i class="fas fa-plus"></i></a><?php
                         }
                     ?></div><?php 
                 }

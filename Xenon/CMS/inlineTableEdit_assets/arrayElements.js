@@ -217,7 +217,8 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options,
             }
             $(itemElement).val(newItemValue);
         }
-    } else {
+    }
+    if (!newItemValue) {
         $parent.find('input,select,textarea').get(0).focus();
     }
 
