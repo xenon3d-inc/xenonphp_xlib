@@ -60,7 +60,7 @@ class InlineTableEdit {
     public function ajaxAutoCompleteSearch($optionsFiltersOverrideFunc = null) {
         if (!empty($_GET['X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD'])) {
             $field = $_GET['X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_FIELD'];
-            $rowID = $_GET['X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_ROW_ID'];
+            $rowID = @$_GET['X_GET_INLINE_EDIT_AUTOCOMPLETE_AJAX_ROW_ID'];
             $search = trim(@$_GET['search']);
 
             $this->loadProperties(false, function($fieldName, $columnData, &$query) use($field) {
