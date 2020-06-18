@@ -3,6 +3,8 @@
 // Domains defined in .htaccess, can accept multiple top-level domains separated by |
 if (!defined('PROD_DOMAIN')) define('PROD_DOMAIN', $_SERVER['PROD_DOMAIN']);
 if (!defined('DEV_DOMAIN')) define('DEV_DOMAIN', $_SERVER['DEV_DOMAIN']);
+if (!defined('MAIN_PROD_DOMAIN')) define('MAIN_PROD_DOMAIN', explode('|', PROD_DOMAIN)[0]);
+if (!defined('MAIN_DEV_DOMAIN')) define('MAIN_DEV_DOMAIN', explode('|', DEV_DOMAIN)[0]);
 
 // Paths
 if (!defined('REAL_DOCUMENT_ROOT')) define('REAL_DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT'] . '/');
@@ -32,6 +34,7 @@ if (!defined('BASE_URL')) define('BASE_URL', (($_BASE_URL=dirname($_SERVER['PHP_
 if (!defined('URL')) define('URL', $_SERVER['REQUEST_URI']);
 if (!defined('HTTPS')) define('HTTPS', ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443));
 if (!defined('DOMAIN_NAME')) define('DOMAIN_NAME', preg_replace("#:\d+$#", "", $_SERVER['HTTP_HOST']));
+if (!defined('ROOT_DOMAIN_NAME')) define('ROOT_DOMAIN_NAME', preg_replace("#^(.*\.)?([\w-]+\.[\w-]+)$#", "$2", DOMAIN_NAME));
 if (!defined('PROTOCOL')) define('PROTOCOL', HTTPS ? "https://" : "http://");
 if (!defined('PORT')) define('PORT', $_SERVER['SERVER_PORT']);
 if (!defined('HOST_URL')) define('HOST_URL', PROTOCOL.DOMAIN_NAME.(PORT!=80&&PORT!=443 ? ':'.PORT : ''));
@@ -50,9 +53,16 @@ if (!defined('DB_UPDATES_CACHE_DIRECTORY')) define('DB_UPDATES_CACHE_DIRECTORY',
 // Asset Minification and Caching
 if (!defined('ASSETS_MINIFY_AND_CACHE_PATH')) define('ASSETS_MINIFY_AND_CACHE_PATH', CACHE_PATH . 'minified_assets/');
 
+// Force DEV/PROD if there is an existing DEV or PROD file in the application directory
+if (!defined('PROD') && @is_file(APPLICATION_PATH.'PROD')) {define('PROD', true);define('DEV', false);}
+if (!defined('DEV') && @is_file(APPLICATION_PATH.'DEV')) {define('DEV', true);define('PROD', false);}
+
 // Determine if PROD or DEV (both can be true, both can be false... that is an accepted behaviour because when using these we may want to exclusively check a stage)
 if (!defined('DEV')) define('DEV', preg_match("#(^|\.)(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", DOMAIN_NAME));
 if (!defined('PROD')) define('PROD', preg_match("#(^|\.)(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", DOMAIN_NAME));
+
+// Force use of 
+if (!defined('USE_FLEXIBLE_DOMAIN_NAME') && !PROD && !DEV) header('Location: https://'.PROD_DOMAIN);
 
 ///////////////////////////////////////////////////////////////////
 

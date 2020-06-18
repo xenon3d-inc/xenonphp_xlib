@@ -768,7 +768,13 @@ class InlineTableEdit {
                     >'.$value.'</div><textarea style="display:none;" name="'.$fieldName.'">'.htmlspecialchars($value).'</textarea>';
             break;
             default:
-                if (!empty($prop['attributes']['readonly'])) echo $value;
+                if (!empty($prop['attributes']['readonly'])) {
+                    if (is_array($value)) {
+                        echo nl2br(str_replace(['Array','[',']','(',')','>','='], ['','','','','','',':'], print_r($value, true)));
+                    } else {
+                        echo $value;
+                    }
+                }
             break;
         }
         if (!empty($prop['attributes']['checkbox'])) {

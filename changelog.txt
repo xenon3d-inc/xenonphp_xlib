@@ -1,3 +1,9 @@
+0.9.0 - 2020-06-18
+    Improvements and bugfixes in Xenon\CMS\InlineTableEdit
+    Improvements and bugfixes in Xenon\Routing\Route
+    Added new constant ROOT_DOMAIN_NAME
+    Implemented new logic where we confirm the validity of the domain name and we redirect to PROD domain when current domain is neither PROD or DEV
+
 0.8.0 - 2019-09-09
     Added CodeEditor
     Added Xenon\CMS\CSV class for import/export functionality

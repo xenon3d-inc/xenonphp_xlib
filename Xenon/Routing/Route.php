@@ -316,17 +316,16 @@ class Route {
             }
             if (!preg_match("#^(".str_replace('.', "\\.", implode('|', (array)$r['subdomain'])).")\.#i", $domain)) {
                 if (DEV && preg_match("#(^|\.)(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", $domain)) {
-                    $domain = ((array)$r['subdomain'])[0].'.'.explode('|', DEV_DOMAIN)[0];
-                } else
-                if (PROD && preg_match("#(^|\.)(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", $domain)) {
-                    $domain = ((array)$r['subdomain'])[0].'.'.explode('|', PROD_DOMAIN)[0];
+                    $domain = ((array)$r['subdomain'])[0].'.'.MAIN_DEV_DOMAIN;
+                } else if (PROD && preg_match("#(^|\.)(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", $domain)) {
+                    $domain = ((array)$r['subdomain'])[0].'.'.MAIN_PROD_DOMAIN;
                 } else {
                     $domain = ((array)$r['subdomain'])[0].'.'.$domain;
                 }
             }
         } else
         if (!in_array($domain, explode('|', PROD_DOMAIN.'|'.DEV_DOMAIN))) {
-            $domain = explode('|', (DEV? DEV_DOMAIN : PROD_DOMAIN))[0];
+            $domain = DEV? MAIN_DEV_DOMAIN : MAIN_PROD_DOMAIN;
         }
         $port = !empty($r['port']) ? (is_array($r['port']) ? ( in_array(PORT, $r['port'])? PORT : $r['port'][0] ) : $r['port']) : PORT;
         if ($port == 443 && $protocol == 'http://') $protocol = 'https://';
