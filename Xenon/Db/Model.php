@@ -445,11 +445,11 @@ class Model implements \ArrayAccess
     public static function getEncrypted($dbValue, $columnName) {
         $iv = substr($dbValue, 0, 16);
         if (strlen($iv) != 16) return null;
-        return openssl_decrypt(substr($dbValue, 16), \Xenon\Config\Security::$DB_ENCRYPTION_METHOD, "~!#&ff".get_called_class().$columnName.\Xenon\Config\Security::$DB_ENCRYPTION_KEY, false, $iv);
+        return openssl_decrypt(substr($dbValue, 16), \Xenon\Config\Security::$DB_ENCRYPTION_METHOD, \Xenon\Config\Security::$DB_ENCRYPTION_KEY.(get_called_class().$columnName)."~!#&ff", false, $iv);
     }
     public static function setEncrypted($newValue, $columnName) {
         $iv = bin2hex(openssl_random_pseudo_bytes(8));
-        return $iv.openssl_encrypt($newValue, \Xenon\Config\Security::$DB_ENCRYPTION_METHOD, "~!#&ff".get_called_class().$columnName.\Xenon\Config\Security::$DB_ENCRYPTION_KEY, false, $iv);
+        return $iv.openssl_encrypt($newValue, \Xenon\Config\Security::$DB_ENCRYPTION_METHOD, \Xenon\Config\Security::$DB_ENCRYPTION_KEY.(get_called_class().$columnName)."~!#&ff", false, $iv);
     }
 
     // @translatable
