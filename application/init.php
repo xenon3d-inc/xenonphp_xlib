@@ -61,8 +61,8 @@ if (!defined('DEV') && @is_file(APPLICATION_PATH.'DEV')) {define('DEV', true);de
 if (!defined('DEV')) define('DEV', preg_match("#(^|\.)(".str_replace('.', "\\.", DEV_DOMAIN).")$#i", DOMAIN_NAME));
 if (!defined('PROD')) define('PROD', preg_match("#(^|\.)(".str_replace('.', "\\.", PROD_DOMAIN).")$#i", DOMAIN_NAME));
 
-// Force use of 
-if (!defined('USE_FLEXIBLE_DOMAIN_NAME') && !PROD && !DEV) header('Location: https://'.PROD_DOMAIN);
+// Force use of defined domains (redirect to PROD)
+if (!defined('USE_FLEXIBLE_DOMAIN_NAME') && !PROD && !DEV) header('Location: https://'.MAIN_PROD_DOMAIN);
 
 ///////////////////////////////////////////////////////////////////
 
