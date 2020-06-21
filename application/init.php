@@ -30,7 +30,7 @@ if (!defined('DEFAULT_LANG')) define('DEFAULT_LANG', $_SERVER['DEFAULT_LANG']);
 // Urls
 if (!defined('METHOD')) define('METHOD', $_SERVER['REQUEST_METHOD']);
 if (!defined('CONSOLE')) define('CONSOLE', METHOD==='CONSOLE');
-if (!defined('BASE_URL')) define('BASE_URL', (($_BASE_URL=dirname($_SERVER['PHP_SELF']))=='/'?'':$_BASE_URL));
+if (!defined('BASE_URL')) define('BASE_URL', (($_BASE_URL=dirname($_SERVER['PHP_SELF']))=='/'?'':($_BASE_URL==='.'?'':$_BASE_URL)));
 if (!defined('URL')) define('URL', $_SERVER['REQUEST_URI']);
 if (!defined('HTTPS')) define('HTTPS', ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443));
 if (!defined('DOMAIN_NAME')) define('DOMAIN_NAME', preg_replace("#:\d+$#", "", $_SERVER['HTTP_HOST']));

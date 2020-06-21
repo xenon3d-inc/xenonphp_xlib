@@ -334,6 +334,7 @@ class Route {
             $host_url = "";
         }
 
+
         // FINAL URL
         $url = $baseURL.$this->getRouteUrlFromRouteKey($route, $lang).$params;
         return $host_url.preg_replace("#/+#",'/',$url).$queryString;
