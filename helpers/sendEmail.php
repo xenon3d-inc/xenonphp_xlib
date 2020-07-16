@@ -5,7 +5,7 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
 
     $to = array_filter((array)$to, 'trim');
     if (!$to) {
-        if (DEV) die("No recipient given for email with subject $subject");
+        if (DISPLAY_ERRORS) die("No recipient given for email with subject $subject");
         return false;
     }
 
@@ -63,7 +63,7 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
         $mail->send();
         return true;
     } catch(\PHPMailer\PHPMailer\Exception $e) {
-        if (DEV) die("PHPMailer Error: ".$mail->ErrorInfo);
+        if (DISPLAY_ERRORS) die("PHPMailer Error: ".$mail->ErrorInfo);
     }
     return false;
 }
@@ -74,7 +74,7 @@ function X_sendEmailTemplate($template, array $vars = [], $to = null, $subject =
     // Check template
     $templatePath = EMAIL_PATH.$template.".phtml";
     if (!is_file($templatePath)) {
-        if (DEV) die("Email Template not found in $templatePath");
+        if (DISPLAY_ERRORS) die("Email Template not found in $templatePath");
         return false;
     }
 
@@ -97,7 +97,7 @@ function X_sendEmailTemplate($template, array $vars = [], $to = null, $subject =
     $to = array_filter((array)$to, 'trim');
 
     if (empty($to)) {
-        if (DEV) die("No recipient given for email template $template");
+        if (DISPLAY_ERRORS) die("No recipient given for email template $template");
         return false;
     }
 
