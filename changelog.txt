@@ -1,3 +1,6 @@
+0.9.1 - 2020-08-10
+    added ajaxAutoSaveOrInsertMultiple in InlineTableEdit
+
 0.9.0 - 2020-06-18
     BREAKING CHANGE : Different algorithm for encrypted data in database (will corrupt any existing encrypted data if updating to this version)
     Improvements and bugfixes in Xenon\CMS\InlineTableEdit
