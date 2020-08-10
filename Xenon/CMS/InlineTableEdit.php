@@ -26,6 +26,18 @@ class InlineTableEdit {
         die($error?$error:"OK");
     }
 
+    // $valueOrArrayField is the field name which determines whether we are inserting multiple rows, this field will be exploded into individual values if it's an array, other fields values will be copied to the next
+    public function ajaxAutoSaveOrInsertMultiple($valueOrArrayField, array $customFunctions = []/* array of field => function($value, $row, $prop, &$data, $isCreate) */, $validateSave = null /* Function(&$row, &$error, $values, $isCreate) that returns true to validate row before saving */) {
+        if (!AJAX) return $this;
+        if (($upload = X_upload())) die($upload);
+        if ($_POST['id'] != '_NEW_' || !is_array($_POST[$valueOrArrayField]))
+            $this->saveData($_POST, $error, false, $customFunctions, $validateSave);
+        else foreach ($_POST[$valueOrArrayField] as $value) {
+            $this->saveData(array_merge($_POST, [$valueOrArrayField => $value]), $error, false, $customFunctions, $validateSave);
+        }
+        die($error?$error:"OK");
+    }
+
     public function loadProperties($source = false, $fetchXToOneOptions = true) {
         if ($source === false) $source = $this->source;
         if ($source === null) return $this;
