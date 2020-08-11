@@ -723,7 +723,7 @@ class InlineTableEdit {
                             parse_str($matches[2], $attrs);
                             $attributes = $attrs + $attributes;
                         }
-                        echo '<th>'.$attributes['label'].'</th>';
+                        echo '<th data-arrayfield="'.$key.'">'.$attributes['label'].'</th>';
                     }
                     if (empty($prop['attributes']['readonly'])) echo '<th></th>';
                     echo '</tr></thead><tbody>';
@@ -732,7 +732,7 @@ class InlineTableEdit {
                             ?>
                             <tr data-i="<?=$i?>">
                                 <?php foreach ($prop['structure'] as $key=>$structure) {?>
-                                    <td>
+                                    <td data-arrayfield="<?=$key?>">
                                         <?php self::outputObjectArrayField($fieldName."[$i][$key]", $structure, @$val[$key], count($prop['structure']), @$prop['options'][$key], @$prop['attributes']['options_label'][$key], !empty($prop['attributes']['readonly']));?>
                                     </td>
                                 <?php } ?>
