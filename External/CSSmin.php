@@ -457,7 +457,7 @@ class CSSmin
 
             if ($found_terminator) {
                 $token = $this->str_slice($css, $start_index, $end_index);
-                $token = preg_replace('/\s+/', '', $token);
+                // $token = preg_replace('/\s+/', '', $token);
                 $this->preserved_tokens[] = $token;
 
                 $preserver = 'url(' . self::TOKEN . (count($this->preserved_tokens) - 1) . '___)';
