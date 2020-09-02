@@ -688,7 +688,17 @@ class InlineTableEdit {
                         else $option_label = $option_labelField? @$option_row[$option_labelField] : "$option_row";
                         echo '<option '.($value == $option_value ? 'selected':'').' value="'.$option_value.'">'.$option_label.'</option>';
                     }
-            }
+                }
+                echo '</select>';
+            break;
+            case 'multiselect':
+                echo '<select name="'.$fieldName.'[]" '.$readonly.$required.' multiple>';
+                if (@$prop['options']) foreach ($prop['options'] as $option_value => $option_row) {
+                    $option_labelField = @$prop['attributes']['options_label'];
+                    if (is_callable($option_labelField)) $option_label = @$option_labelField($option_value, $option_row, $value);
+                    else $option_label = $option_labelField? @$option_row[$option_labelField] : "$option_row";
+                    echo '<option '.(in_array($option_value, (array)$value)? 'selected':'').' value="'.$option_value.'">'.$option_label.'</option>';
+                }
                 echo '</select>';
             break;
             case 'lang':
