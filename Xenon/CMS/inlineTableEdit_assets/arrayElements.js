@@ -202,9 +202,13 @@ function X_inlineTableEdit_addArrayElement(fieldName, structure, $elem, options,
                     if (typeof value === 'object') {
                         for (var val in value) if ($(itemElement).find('option[value="'+val+'"]').length == 0) {
                             $(itemElement).append($('<option>').attr('value', val).text(value[val])).val(val);
+                        } else {
+                            $(itemElement).val(value);
                         }
                     } else if ($(itemElement).find('option[value="'+value+'"]').length == 0) {
                         $(itemElement).append($('<option>').attr('value', value).text(value)).val(value);
+                    } else {
+                        $(itemElement).val(value);
                     }
                 } else {
                     $(itemElement).val(value);
