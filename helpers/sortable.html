@@ -1,0 +1,74 @@
+<style>
+    table[sortable] thead tr th[sortable] {
+        cursor: pointer;
+    }
+    table[sortable] thead tr th[data-sort] {
+        font-family: "Font Awesome 5 Free";
+    }
+    table[sortable] thead tr th[data-sort]:after {
+        padding: 0 4px;
+    }
+    table[sortable] thead tr th[data-sort="desc"]:after {
+        content: "\f0dd";
+    }
+    table[sortable] thead tr th[data-sort="asc"]:after {
+        content: "\f0de";
+        position: relative;
+        top: 4px;
+    }
+</style>
+
+<script>
+    var _SORTABLE_TABLES = [];
+
+    function SortableRefresh(tableIndex) {
+        let $table = _SORTABLE_TABLES[tableIndex].table;
+        $table.find('th[data-sort]').removeAttr('data-sort');
+        $table.find('td[data-sort]').removeAttr('data-sort');
+        let colIndex = 1+_SORTABLE_TABLES[tableIndex].sort;
+        let dir = _SORTABLE_TABLES[tableIndex].dir;
+        if (colIndex != 0) {
+            let $colHeader = $table.find('thead th:nth-child('+colIndex+')');
+            let colSortType = $colHeader.attr('sortable');
+            $colHeader.attr('data-sort', dir);
+            $table.find('tbody td:nth-child('+colIndex+')').attr('data-sort', dir);
+
+            Array.from($table.find('tbody tr'))
+                    .sort(function($a, $b) {
+                        $a = $($a).children().eq(colIndex-1);
+                        $b = $($b).children().eq(colIndex-1);
+                        let a = dir=="asc"? $a.text() : $b.text();
+                        let b = dir=="asc"? $b.text() : $a.text();
+                        return (a !== '' && b !== '' && !isNaN(a) && !isNaN(b)) ? (a - b) : a.toString().localeCompare(b);
+                    }).forEach(tr => $table.append(tr));
+        }
+    }
+
+    function SortableSort(tableIndex, colIndex, dir) {
+        _SORTABLE_TABLES[tableIndex].sort = colIndex;
+        _SORTABLE_TABLES[tableIndex].dir = dir;
+        SortableRefresh(tableIndex);
+    }
+
+    $(document).ready(function(){
+        $('table[sortable]').each(function(){
+            let tableIndex = _SORTABLE_TABLES.length;
+            $(this).find('tbody tr').each(function(){
+                $(this).attr('data-sortable-row-index', $(this).index());
+            });
+            _SORTABLE_TABLES.push({
+                table: $(this),
+                sort: -1,
+                dir: "desc",
+            });
+            $(this).attr('sortable', tableIndex);
+            $(this).find('thead tr th[sortable]').on('click', function(){
+                SortableSort(+$(this).closest('table[sortable]').attr('sortable'), $(this).index(), ($(this).attr('data-sort') === "desc"? "asc" : "desc"));
+            });
+            $(this).find('thead tr th[data-sort]').each(function(){
+                SortableSort(+$(this).closest('table[sortable]').attr('sortable'), $(this).index(), $(this).attr('data-sort'));
+            });
+            SortableRefresh(tableIndex);
+        });
+    });
+</script>
