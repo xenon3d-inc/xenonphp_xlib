@@ -42,6 +42,9 @@ if (!defined('FULL_URL')) define('FULL_URL', HOST_URL.URL);
 if (!defined('ROUTE_URL')) define('ROUTE_URL', preg_replace("#^".preg_quote(BASE_URL, '#')."(.*)$#", "$1", URL));
 if (!defined('ADMIN_URL_COMPONENT')) define('ADMIN_URL_COMPONENT', 'admin');
 
+// Image processing
+if (!defined('IMAGE_PROCESSING_PLACEHOLDER_URL')) define('IMAGE_PROCESSING_PLACEHOLDER_URL', '//placehold.it/'); // '//placehold.it/' OR '/images/placeholder.png?size='
+
 // AJAX
 if (!defined('AJAX')) define('AJAX',((!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')));
 if (!defined('PJAX')) define('PJAX',(!empty($_SERVER['HTTP_X_PJAX'])));

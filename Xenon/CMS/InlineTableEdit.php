@@ -654,16 +654,16 @@ class InlineTableEdit {
             case 'image_upload':
                 $size = !empty($prop['attributes']['size'])? $prop['attributes']['size'] : "50x50";
                 if ($readonly) {
-                    echo '<img src="'.($value?("$value?size=$size&margins"):"//placehold.it/$size&text=$fieldName").'" alt="'.$fieldName.'" />';
+                    echo '<img src="'.($value?("$value?size=$size&margins"):(IMAGE_PROCESSING_PLACEHOLDER_URL."$size&text=$fieldName")).'" alt="'.$fieldName.'" />';
                 } else {
                     if (strpos($value, '%') === 0) {
                         ?><input type="hidden" name="<?=$fieldName?>" value="<?=$value?>"><?php
-                        X_simpleImageUpload($fieldName, null, "//placehold.it/$size&text=".urlencode($value), "?size=$size&crop");
+                        X_simpleImageUpload($fieldName, null, IMAGE_PROCESSING_PLACEHOLDER_URL."$size&text=".urlencode($value), "?size=$size&crop");
                     } else {
                         ?>
-                        <a onclick="event.stopPropagation();$(this).parent().find('[name=\'<?=$fieldName?>\']').val('').trigger('change');$(this).parent().find('img').attr('src', '/'+'/placehold.it/<?=$size?>&text=<?=$fieldName?>')"><i class="fas fa-times"></i></a><br>
+                        <a onclick="event.stopPropagation();$(this).parent().find('[name=\'<?=$fieldName?>\']').val('').trigger('change');$(this).parent().find('img').attr('src', '<?=str_replace('/'.'/', '/', IMAGE_PROCESSING_PLACEHOLDER_URL)?><?=$size?>&text=<?=$fieldName?>')"><i class="fas fa-times"></i></a><br>
                         <?php
-                        X_simpleImageUpload($fieldName, $value, "//placehold.it/$size&text=$fieldName", "?size=$size&crop");
+                        X_simpleImageUpload($fieldName, $value, IMAGE_PROCESSING_PLACEHOLDER_URL."$size&text=$fieldName", "?size=$size&crop");
                     }
                 }
             break;

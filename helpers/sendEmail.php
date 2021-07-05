@@ -11,7 +11,7 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
 
     $filterDontSend = function($email) {
         if (!trim($email)) return false;
-        if (strpos(trim($email), '__DONTSEND__') === 0) {
+        if (strpos(trim($email), '__DONTSEND__') === 0 || strpos(trim($email), '@fake_email.com') !== false) {
             return false;
         }
         return true;
@@ -52,7 +52,7 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
         $mail->Body = $body;
         
         if (empty($to)) {
-            // __DONTSEND__ : just ignore it, no error
+            // __DONTSEND__ or fake email : just ignore it, no error
             return true;
         }
 

@@ -4,7 +4,7 @@
 
 function X_simpleImageUpload($name, $src, $defaultValue, $imageprocessor, $autoSubmit = false) {?>
 <div class="X_simpleImageUpload" ondrop="dropUploadFile(event, this.querySelector('input[type=file]'));" style="position:relative;">
-    <img src="<?=$src? $src.$imageprocessor : $defaultValue?>" alt="<?=$name?>"><br>
+    <img src="<?=$src? ($src.(strpos($src, '?')===false? $imageprocessor:"")) : $defaultValue?>" alt="<?=$name?>"><br>
     <input type="hidden" name="<?=$name?>" value="<?=$src?>" <?php if ($src === null) echo 'disabled'; ?>>
     <input type="file"
         style="
