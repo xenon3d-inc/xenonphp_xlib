@@ -234,7 +234,7 @@ class InlineTableEdit {
                                             //TODO other stuff ?
                                             if (!is_callable($validateSave) || $validateSave($row, $error, $values, true) === true) {
                                                 $row->save();
-                                            } else {
+                                            } else if ($error !== false) {
                                                 $error = "Error saving data. $error";
                                             }
                                         } catch(\Exception $e) {
