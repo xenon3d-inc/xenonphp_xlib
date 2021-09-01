@@ -40,6 +40,10 @@ $(document).on('change.autosave', '.inlineTableEdit input[name], .inlineTableEdi
                 if (!$(this).prop('disabled')) data[$(this).attr('name')] = value;
             }
         });
+        if ($input.prop('tagName') == "INPUT" && $input.prop('type') == "button") {
+            var name = $input.attr('name');
+            data[name] = $input.attr('data-value') !== undefined? $input.attr('data-value') : $input.attr('value');
+        }
         if (typeof window[customBeforeFunc] === 'function') {
             if (window[customBeforeFunc](data, $parent) === false) {
                 return;
