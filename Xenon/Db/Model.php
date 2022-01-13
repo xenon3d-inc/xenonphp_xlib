@@ -22,6 +22,8 @@ class Model implements \ArrayAccess
     /** @Column @id */
     public $id;
 
+    // OnSave event: $modifiedColumns will contain only the columns that have been modified with their values, and also, if inserted, the id field with all specified fields.
+    public function onSave(array $modifiedColumns) {}
 
     // Constructor
     public function __construct(array $values = [], $rawData = false) {
@@ -272,28 +274,31 @@ class Model implements \ArrayAccess
             $values = [];
             $columns = implode(', ',
                 array_filter(array_map(
-                    function($columnData) use(&$values, $model, $self) {
+                    function($columnData) use(&$values, &$insertedColumnValues, $model, $self) {
                         if (isset($self->{$columnData->column})) $val = $self->{$columnData->column};
                         else if (isset($self->{$columnData->field})) $val = $self->{$columnData->field};
                         else if (array_key_exists($columnData->column, $self->_original_values)) $val = $self->_original_values[$columnData->column];
                         else if (array_key_exists($columnData->field, $self->_original_values)) $val = $self->_original_values[$columnData->field];
                         else return false; // If value was not passed to the object in any way, do not put it in the insert clause
                         if ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES)) $val = null;
-                        $values[] = $val;
+                        $values[$columnData->column] = $val;
                         return new Field($model, $columnData);
                     },
                     $this->_modelData->getColumns()
                 ))
             );
-            $query = new Query(new Expr("INSERT INTO `$table`($columns) VALUES(?)", $model, $values));
+            $query = new Query(new Expr("INSERT INTO `$table`($columns) VALUES(?)", $model, array_values($values)));
             $query->execute();
             $this->id = mysqli_insert_id($link);
             $this->_lazyLoad = true;
+
+            $this->onSave(['id' => $this->id] + $self->_original_values + $values);
 
         // UPDATE
         } else {
             $values = "";
             $replacements = [];
+            $valuesSetToNull = [];
             foreach ($this->_modelData->getColumns() as $columnData) {
                 if ($columnData->onupdate == 'current_timestamp') {
                     $this->$columnData = new Query\Helper\DateTime();
@@ -304,17 +309,19 @@ class Model implements \ArrayAccess
                     if ($values != "") $values .= ", ";
                     if ($val === null || ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES))) {
                         $values .= "$field = NULL";
+                        $valuesSetToNull[$field->field] = null;
                     } else {
                         $values .= "$field = ?";
-                        $replacements[] = $val;
+                        $replacements[$field->field] = $val;
                     }
                 }
             }
             if ($values != "") {
-                $replacements[] = $this->id;
-                $query = new Query(new Expr("UPDATE `$table` SET $values WHERE `id` = ?", $model, ...$replacements));
+                $query = new Query(new Expr("UPDATE `$table` SET $values WHERE `id` = ?", $model, ...array_values($replacements+['id'=>$this->id])));
                 $query->execute();
                 $this->_lazyLoad = true;
+
+                $this->onSave($replacements + $valuesSetToNull);
             }
         }
 
