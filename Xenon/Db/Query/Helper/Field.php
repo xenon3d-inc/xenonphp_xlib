@@ -12,6 +12,7 @@ class Field {
     public $modelData = null;
     public $table = "";
     public $field = "";
+    public $column = "";
     public $alias = "";
     public $expression = "";
 
@@ -50,6 +51,7 @@ class Field {
             } else {
                 $this->expression = "`".$field."`".$as;
             }
+            $this->column = $field->column;
             return;
         }
 

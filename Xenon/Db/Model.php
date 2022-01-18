@@ -298,7 +298,6 @@ class Model implements \ArrayAccess
         } else {
             $values = "";
             $replacements = [];
-            $valuesSetToNull = [];
             foreach ($this->_modelData->getColumns() as $columnData) {
                 if ($columnData->onupdate == 'current_timestamp') {
                     $this->$columnData = new Query\Helper\DateTime();
@@ -309,10 +308,10 @@ class Model implements \ArrayAccess
                     if ($values != "") $values .= ", ";
                     if ($val === null || ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES))) {
                         $values .= "$field = NULL";
-                        $valuesSetToNull[$field->field] = null;
+                        $replacements[$field->column] = null;
                     } else {
                         $values .= "$field = ?";
-                        $replacements[$field->field] = $val;
+                        $replacements[$field->column] = $val;
                     }
                 }
             }
@@ -321,7 +320,7 @@ class Model implements \ArrayAccess
                 $query->execute();
                 $this->_lazyLoad = true;
 
-                $this->onSave($replacements + $valuesSetToNull);
+                $this->onSave($replacements);
             }
         }
 
