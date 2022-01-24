@@ -280,7 +280,9 @@ class Model implements \ArrayAccess
                         else if (array_key_exists($columnData->column, $self->_original_values)) $val = $self->_original_values[$columnData->column];
                         else if (array_key_exists($columnData->field, $self->_original_values)) $val = $self->_original_values[$columnData->field];
                         else return false; // If value was not passed to the object in any way, do not put it in the insert clause
-                        if ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES)) $val = null;
+                        if ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES)) {
+                            $val = null;
+                        }
                         $values[$columnData->column] = $val;
                         return new Field($model, $columnData);
                     },
@@ -306,13 +308,11 @@ class Model implements \ArrayAccess
                 if (array_key_exists($columnData->column, $this->_original_values) && $val != $this->_original_values[$columnData->column]) {
                     $field = new Field($model, $columnData);
                     if ($values != "") $values .= ", ";
-                    if ($val === null || ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES))) {
-                        $values .= "$field = NULL";
-                        $replacements[$field->column] = null;
-                    } else {
-                        $values .= "$field = ?";
-                        $replacements[$field->column] = $val;
+                    $values .= "$field = ?";
+                    if ($val === '' && in_array($columnData->type, \Xenon\Db\Schema\Column::$AUTONULL_TYPES)) {
+                        $val = null;
                     }
+                    $replacements[$field->column] = $val;
                 }
             }
             if ($values != "") {
