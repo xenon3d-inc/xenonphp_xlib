@@ -291,6 +291,7 @@ class Model implements \ArrayAccess
             );
             $query = new Query(new Expr("INSERT INTO `$table`($columns) VALUES(?)", $model, array_values($values)));
             $query->execute();
+            $this->_isnew = false;
             $this->id = mysqli_insert_id($link);
             $this->_lazyLoad = true;
 
