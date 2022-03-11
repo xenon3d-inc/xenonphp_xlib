@@ -608,7 +608,7 @@ class Model implements \ArrayAccess
         return $value;
     }
     public static function handler_set_enum($value, Schema\Column $column) {
-        if ($column->null && ($value === null || $value === '')) {
+        if ($column->null && ($value === null || $value === '' || $value === 'null')) {
             return null;
         }
         if (!in_array($value, $column->enum)) {
