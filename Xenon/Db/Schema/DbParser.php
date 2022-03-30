@@ -2,6 +2,12 @@
 
 namespace Xenon\Db\Schema;
 
+if (!function_exists('str_starts_with')) {
+    function str_starts_with($str, $start) {
+        return (@substr_compare($str, $start, 0, strlen($start))==0);
+    }
+}
+
 class DbParser
 {
     protected $table;
@@ -300,7 +306,7 @@ class DbParser
         if ($fromDB->getTable()->engine != $current->getTable()->engine) {
             $tableDataToUpdate['engine'] = $current->getTable()->engine;
         }
-        if ($fromDB->getTable()->charset != $current->getTable()->charset) {
+        if (!str_starts_with($fromDB->getTable()->charset, $current->getTable()->charset)) {
             $tableDataToUpdate['charset'] = $current->getTable()->charset;
         }
         if ($fromDB->getTable()->collate != $current->getTable()->collate) {
