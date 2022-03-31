@@ -12,9 +12,9 @@ function X_reCaptcha_init($action = null) {
         var X_reCaptcha_token = null;
         function X_runReCaptcha(callback) {
             grecaptcha.execute('<?=$X_CONFIG['recaptcha']['site_key']?>', {action: '<?=$action?>'}).then(function(token) {
+                $('input[name="recaptcha-token"]').val(token);
                 X_reCaptcha_token = token;
                 if (typeof callback === 'function') {
-                    $('input[name="recaptcha-token"]').val(token);
                     callback(token);
                 }
             });
