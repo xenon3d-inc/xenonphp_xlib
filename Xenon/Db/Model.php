@@ -605,6 +605,7 @@ class Model implements \ArrayAccess
 
     // enum
     public static function handler_get_enum($value, Schema\Column $column) {
+        if ($value === 'null') return null;
         return $value;
     }
     public static function handler_set_enum($value, Schema\Column $column) {
