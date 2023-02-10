@@ -25,7 +25,7 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
     try {
         $mail->Host = !empty($X_CONFIG['smtp']['host'])? $X_CONFIG['smtp']['host'] : 'localhost';
         $mail->Port = !empty($X_CONFIG['smtp']['port'])? $X_CONFIG['smtp']['port'] : 465;
-        $mail->SMTPSecure = !empty($X_CONFIG['smtp']['security'])? $X_CONFIG['smtp']['security'] : 'ssl';
+        $mail->SMTPSecure = isset($X_CONFIG['smtp']['security'])? $X_CONFIG['smtp']['security'] : 'ssl';
         $mail->isSMTP();
         if (!isset($X_CONFIG['smtp']['auth']) || $X_CONFIG['smtp']['auth']) {
             $mail->SMTPAuth = true;
