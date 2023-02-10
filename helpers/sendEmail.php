@@ -59,7 +59,11 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
         foreach ($to as $to) if (trim($to)) $mail->addAddress(trim($to));
         if (!empty($cc))  foreach ($cc as $cc)   if (trim($cc))  $mail->addCC(trim($cc));
         if (!empty($bcc)) foreach ($bcc as $bcc) if (trim($bcc)) $mail->addBcc(trim($bcc));
-
+        
+        if (!empty($X_CONFIG['smtp']['smtp_debug'])) {
+		    $mail->SMTPDebug = \PHPMailer\PHPMailer\SMTP::DEBUG_SERVER;
+	    }
+        
         $mail->send();
         return true;
     } catch(\PHPMailer\PHPMailer\Exception $e) {
