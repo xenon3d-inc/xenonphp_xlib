@@ -23,17 +23,17 @@ function X_sendEmail($to, $subject, $body, $isHtml = false, $replyTo = null, $fr
 
     $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
     try {
-        if (!empty($X_CONFIG['smtp']['username'])) {
-            $mail->isSMTP();
-            $mail->Host = !empty($X_CONFIG['smtp']['host'])? $X_CONFIG['smtp']['host'] : 'localhost';
+        $mail->Host = !empty($X_CONFIG['smtp']['host'])? $X_CONFIG['smtp']['host'] : 'localhost';
+        $mail->Port = !empty($X_CONFIG['smtp']['port'])? $X_CONFIG['smtp']['port'] : 465;
+        $mail->SMTPSecure = !empty($X_CONFIG['smtp']['security'])? $X_CONFIG['smtp']['security'] : 'ssl';
+        $mail->isSMTP();
+        if (!isset($X_CONFIG['smtp']['auth']) || $X_CONFIG['smtp']['auth']) {
             $mail->SMTPAuth = true;
-            $mail->Username = $X_CONFIG['smtp']['username'];
+            $mail->Username = @$X_CONFIG['smtp']['username'];
             $mail->Password = @$X_CONFIG['smtp']['password'];
-            $mail->SMTPSecure = 'ssl';
-            $mail->Port = !empty($X_CONFIG['smtp']['port'])? $X_CONFIG['smtp']['port'] : 465;
         }
         if ($from_email === null && !empty($X_CONFIG['smtp']['from_email'])) {
-            $from_email = $X_CONFIG['smtp']['from_email'];
+            $from_email = @$X_CONFIG['smtp']['from_email'];
             $from_name = @$X_CONFIG['smtp']['from_name'];
         }
         if ($from_email) {
